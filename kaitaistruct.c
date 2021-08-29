@@ -60,6 +60,10 @@ int ks_stream_read_bits_be(ks_stream* stream, int width, uint32_t* value)
 {
 }
 
-int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
+int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes** bytes)
+{
+}
+
+int ks_bytes_destroy(ks_bytes* bytes)
 {
 }
