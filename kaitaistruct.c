@@ -15,36 +15,41 @@
 
 REVERSE_FUNC(uint8_t);
 
-int ks_stream_create_from_file(ks_stream* stream, FILE* file)
+int ks_stream_create_from_file(ks_stream** stream, FILE* file)
 {
-    memset(stream, 0, sizeof(ks_stream));
+    ks_stream* ret = calloc(sizeof(ks_stream));
 
-    stream->is_file = 1;
-    stream->file = file;
+    ret->is_file = 1;
+    ret->file = file;
 
     fseek(file, 0, SEEK_END);
-    stream->length = ftell(file);
+    ret->length = ftell(file);
+    *stream = ret;
     return 0;
 }
 
-int ks_stream_create_from_bytes(ks_stream* stream, ks_bytes* bytes)
+int ks_stream_create_from_bytes(ks_stream** stream, ks_bytes* bytes)
 {
-    stream->parent = bytes->stream;
-    stream->is_file = stream->parent->is_file;
-    stream->file = stream->parent->ifile;
-    stream->data = stream->parent->data;
-    stream->start = bytes->pos;
-    stream->length = bytes->length;
+    ks_stream* ret = calloc(sizeof(ks_stream));
+
+    ret->parent = bytes->ret;
+    ret->is_file = ret->parent->is_file;
+    ret->file = ret->parent->ifile;
+    ret->data = ret->parent->data;
+    ret->start = bytes->pos;
+    ret->length = bytes->length;
+    *stream = ret;
     return 0;
 }
 
-int ks_stream_create_from_memory(ks_stream* stream, uint8_t* data, int len)
+int ks_stream_create_from_memory(ks_stream** stream, uint8_t* data, int len)
 {
-    memset(stream, 0, sizeof(ks_stream));
+    ks_stream* ret = calloc(sizeof(ks_stream));
 
-    stream->is_file = 1;
-    stream->data = data;
-    stream->length = len;
+    ret->is_file = 1;
+    ret->data = data;
+    ret->length = len;
+    *stream = ret;
     return 0;
 }
 
@@ -279,7 +284,35 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes** bytes)
     return 0;
 }
 
-void ks_bytes_destroy(ks_bytes* bytes)
+int ks_bytes_destroy(ks_bytes* bytes)
 {
     free(bytes);
+    return 0;
 }
+
+int ks_stream_destroy(ks_stream* stream)
+{
+    free(stream);
+    return 0;
+}
+
+int ks_allocate_handle(ks_handle** handle, stream* stream, void* data, ks_type type, int type_size)
+{
+    ks_handle* ret = calloc(sizeof(ks_handle));
+
+    ret->stream = stream;
+    ret->pos = stream->pos;
+    ret->data = data;
+    ret->type = type;
+    ret->type_size = type_size;
+
+    *handle = ret;
+    return 0;
+}
+
+int ks_destroy_handle(ks_handle* handle)
+{
+    free(handle);
+    return 0;
+}
+

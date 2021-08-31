@@ -10,9 +10,25 @@
 #define CHECK(expr) \
    CHECK2(expr, "")
 
-typedef struct ks_handle_
+typedef enum ks_type_
 {
-} ks_handle;
+    KS_TYPE_UNKNOWN = 0,
+    KS_TYPE_ARRAY_UINT8_T,
+    KS_TYPE_ARRAY_UINT16_T,
+    KS_TYPE_ARRAY_UINT32_T,
+    KS_TYPE_ARRAY_UINT64_T,
+    KS_TYPE_ARRAY_INT8_T,
+    KS_TYPE_ARRAY_INT16_T,
+    KS_TYPE_ARRAY_INT32_T,
+    KS_TYPE_ARRAY_INT64_T,
+    KS_TYPE_ARRAY_FLOAT32,
+    KS_TYPE_ARRAY_FLOAT64,
+    KS_TYPE_ARRAY_STRING,
+    KS_TYPE_ARRAY_USERENUM,
+    KS_TYPE_ARRAY_USERTYPE,
+    KS_TYPE_BYTES,
+    KS_TYPE_USERTYPE,
+} ks_type;
 
 typedef struct ks_stream_
 {
@@ -26,6 +42,17 @@ typedef struct ks_stream_
     uint64_t bits;
     int bits_left;
 } ks_stream;
+
+typedef struct ks_handle_
+{
+    ks_stream* stream;
+    int pos;
+    void* data;
+    ks_type type;
+    int type_size;
+    void* write_func; /* To write back */
+    uint64_t last_size; /* To make sure the size when writing back isn't too big */
+} ks_handle;
 
 typedef struct ks_bytes_
 {
@@ -45,9 +72,80 @@ struct ks_bytes_;
 typedef struct ks_bytes_ ks_bytes;
 #endif
 
-int ks_stream_create_from_file(ks_stream* stream, FILE* file);
-int ks_stream_create_from_memory(ks_stream* stream, uint8_t* data, int len);
-int ks_stream_create_from_bytes(ks_stream* stream, ks_bytes* bytes);
+typedef struct ks_array_uint8_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    uint8_t data[0];
+} ks_array_uint8_t;
+
+typedef struct ks_array_uint16_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    uint16_t data[0];
+} ks_array_uint16_t;
+
+typedef struct ks_array_uint32_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    uint32_t data[0];
+} ks_array_uint32_t;
+
+typedef struct ks_array_uint64_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    uint64_t data[0];
+} ks_array_uint64_t;
+
+typedef struct ks_array_int8_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    int8_t data[0];
+} ks_array_int8_t;
+
+typedef struct ks_array_int16_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    int16_t data[0];
+} ks_array_int16_t;
+
+typedef struct ks_array_int32_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    int32_t data[0];
+} ks_array_int32_t;
+
+typedef struct ks_array_int64_t_
+{
+    ks_handle* _handle;
+    int64_t size;
+    int64_t data[0];
+} ks_array_int64_t;
+
+typedef struct ks_array_float32_
+{
+    ks_handle* _handle;
+    int64_t size;
+    float data[0];
+} ks_array_float32;
+
+typedef struct ks_array_float64_
+{
+    ks_handle* _handle;
+    int64_t size;
+    double data[0];
+} ks_array_float64;
+
+
+int ks_stream_create_from_file(ks_stream** stream, FILE* file);
+int ks_stream_create_from_memory(ks_stream** stream, uint8_t* data, int len);
+int ks_stream_create_from_bytes(ks_stream** stream, ks_bytes* bytes);
 
 int ks_stream_read_u1(ks_stream* stream, uint8_t* value);
 int ks_stream_read_u2le(ks_stream* stream, uint16_t* value);
@@ -69,5 +167,10 @@ int ks_stream_read_bits_le(ks_stream* stream, int width, uint64_t* value);
 int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value);
 
 int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes** bytes);
-void ks_bytes_destroy(ks_bytes* bytes);
+int ks_bytes_destroy(ks_bytes* bytes);
+int ks_stream_destroy(ks_stream* stream);
+
+int ks_allocate_handle(ks_handle** handle, stream* stream, void* data, ks_type type, int type_size);
+
+int ks_destroy_handle(ks_handle* handle)
 
