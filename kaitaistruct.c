@@ -17,7 +17,7 @@ REVERSE_FUNC(uint8_t);
 
 int ks_stream_create_from_file(ks_stream** stream, FILE* file)
 {
-    ks_stream* ret = calloc(sizeof(ks_stream));
+    ks_stream* ret = calloc(1, sizeof(ks_stream));
 
     ret->is_file = 1;
     ret->file = file;
@@ -30,11 +30,11 @@ int ks_stream_create_from_file(ks_stream** stream, FILE* file)
 
 int ks_stream_create_from_bytes(ks_stream** stream, ks_bytes* bytes)
 {
-    ks_stream* ret = calloc(sizeof(ks_stream));
+    ks_stream* ret = calloc(1, sizeof(ks_stream));
 
-    ret->parent = bytes->ret;
+    ret->parent = bytes->stream;
     ret->is_file = ret->parent->is_file;
-    ret->file = ret->parent->ifile;
+    ret->file = ret->parent->file;
     ret->data = ret->parent->data;
     ret->start = bytes->pos;
     ret->length = bytes->length;
@@ -44,7 +44,7 @@ int ks_stream_create_from_bytes(ks_stream** stream, ks_bytes* bytes)
 
 int ks_stream_create_from_memory(ks_stream** stream, uint8_t* data, int len)
 {
-    ks_stream* ret = calloc(sizeof(ks_stream));
+    ks_stream* ret = calloc(1, sizeof(ks_stream));
 
     ret->is_file = 1;
     ret->data = data;
@@ -228,7 +228,7 @@ static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, bool big_
             }
             else
             {
-                stream->bits |= (static_cast<uint64_t>(b) << stream->bits_left);
+                stream->bits |= (((uint64_t)b) << stream->bits_left);
             }
             stream->bits_left += 8;
         }
@@ -241,11 +241,11 @@ static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, bool big_
         mask <<= shift_bits;
 
         // derive reading result
-        *value = = (stream->bits & mask) >> shift_bits;
+        *value = (stream->bits & mask) >> shift_bits;
         // clear top bits that we've just read => AND with 1s
         stream->bits_left -= n;
         mask = get_mask_ones(stream->bits_left);
-        mstream->its &= mask;
+        stream->bits &= mask;
     }
     else
     {
@@ -274,7 +274,7 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes** bytes)
 
     CHECK2(stream->pos + len > stream->length, "End of stream");
 
-    ret = calloc(sizeof(ks_bytes));
+    ret = calloc(1, sizeof(ks_bytes));
     ret->length = len;
     ret->stream = stream;
     ret->pos = stream->pos;
@@ -296,9 +296,9 @@ int ks_stream_destroy(ks_stream* stream)
     return 0;
 }
 
-int ks_allocate_handle(ks_handle** handle, stream* stream, void* data, ks_type type, int type_size)
+int ks_allocate_handle(ks_handle** handle, ks_stream* stream, void* data, ks_type type, int type_size)
 {
-    ks_handle* ret = calloc(sizeof(ks_handle));
+    ks_handle* ret = calloc(1, sizeof(ks_handle));
 
     ret->stream = stream;
     ret->pos = stream->pos;

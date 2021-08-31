@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #ifdef KS_DEPEND_ON_INTERNALS
 
@@ -9,6 +10,8 @@
 
 #define CHECK(expr) \
    CHECK2(expr, "")
+
+typedef int bool;
 
 typedef enum ks_type_
 {
@@ -60,16 +63,13 @@ typedef struct ks_bytes_
     uint64_t pos;
     int length;
 } ks_bytes;
+
 #else
 
-struct ks_handle_;
 typedef struct ks_handle_ ks_handle;
-
-struct ks_stream_;
 typedef struct ks_stream_ ks_stream;
-
-struct ks_bytes_;
 typedef struct ks_bytes_ ks_bytes;
+
 #endif
 
 typedef struct ks_array_uint8_t_
@@ -170,7 +170,7 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes** bytes);
 int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
 
-int ks_allocate_handle(ks_handle** handle, stream* stream, void* data, ks_type type, int type_size);
+int ks_allocate_handle(ks_handle** handle, ks_stream* stream, void* data, ks_type type, int type_size);
 
-int ks_destroy_handle(ks_handle* handle)
+int ks_destroy_handle(ks_handle* handle);
 
