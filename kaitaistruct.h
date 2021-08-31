@@ -76,70 +76,70 @@ typedef struct ks_array_uint8_t_
 {
     ks_handle* _handle;
     int64_t size;
-    uint8_t data[0];
+    uint8_t* data;
 } ks_array_uint8_t;
 
 typedef struct ks_array_uint16_t_
 {
     ks_handle* _handle;
     int64_t size;
-    uint16_t data[0];
+    uint16_t* data;
 } ks_array_uint16_t;
 
 typedef struct ks_array_uint32_t_
 {
     ks_handle* _handle;
     int64_t size;
-    uint32_t data[0];
+    uint32_t* data;
 } ks_array_uint32_t;
 
 typedef struct ks_array_uint64_t_
 {
     ks_handle* _handle;
     int64_t size;
-    uint64_t data[0];
+    uint64_t* data;
 } ks_array_uint64_t;
 
 typedef struct ks_array_int8_t_
 {
     ks_handle* _handle;
     int64_t size;
-    int8_t data[0];
+    int8_t* data;
 } ks_array_int8_t;
 
 typedef struct ks_array_int16_t_
 {
     ks_handle* _handle;
     int64_t size;
-    int16_t data[0];
+    int16_t* data;
 } ks_array_int16_t;
 
 typedef struct ks_array_int32_t_
 {
     ks_handle* _handle;
     int64_t size;
-    int32_t data[0];
+    int32_t* data;
 } ks_array_int32_t;
 
 typedef struct ks_array_int64_t_
 {
     ks_handle* _handle;
     int64_t size;
-    int64_t data[0];
+    int64_t* data;
 } ks_array_int64_t;
 
 typedef struct ks_array_float32_
 {
     ks_handle* _handle;
     int64_t size;
-    float data[0];
+    float* data;
 } ks_array_float32;
 
 typedef struct ks_array_float64_
 {
     ks_handle* _handle;
     int64_t size;
-    double data[0];
+    double* data;
 } ks_array_float64;
 
 
