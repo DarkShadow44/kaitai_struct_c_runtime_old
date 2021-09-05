@@ -45,6 +45,8 @@ typedef struct ks_handle_
     void* data;
     ks_type type;
     int type_size;
+    int64_t array_size;
+    void* array_data;
     void* write_func; /* To write back */
     uint64_t last_size; /* To make sure the size when writing back isn't too big */
 } ks_handle;
@@ -163,6 +165,7 @@ int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
 
 int ks_allocate_handle(ks_handle** handle, ks_stream* stream, void* data, ks_type type, int type_size);
+int ks_allocate_handle_array(ks_handle** handle, ks_stream* stream, void* data, ks_type type, int type_size, void* array_data, int64_t array_size);
 
 int ks_destroy_handle(ks_handle* handle);
 
