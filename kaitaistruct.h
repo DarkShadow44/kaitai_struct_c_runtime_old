@@ -23,60 +23,42 @@ typedef enum ks_type_
     KS_TYPE_USERTYPE,
 } ks_type;
 
-typedef struct ks_stream_internal_
-{
-    bool is_file;
-    FILE* file;
-    uint8_t* data;
-    uint64_t start;
-    uint64_t length;
-    uint64_t pos;
-    uint64_t bits;
-    int bits_left;
-} ks_stream_internal;
-
-typedef struct ks_handle_internal_
-{
-    ks_stream_internal stream;
-    /* Might need to add parent/rootdata pointer as well... */
-    int pos;
-    void* data;
-    ks_type type;
-    int type_size;
-    void* write_func; /* To write back */
-    uint64_t last_size; /* To make sure the size when writing back isn't too big */
-} ks_handle_internal;
-
-typedef struct ks_bytes_internal_
-{
-    ks_stream_internal stream;
-    uint64_t pos;
-    int length;
-} ks_bytes_internal;
-
-typedef struct ks_handle_
-{
-    unsigned char reserved[sizeof(ks_handle_internal)];
-} ks_handle;
+#ifdef KS_DEPEND_ON_INTERNALS
+#define KS_DO_NOT_USE(X) X
+#else
+#define KS_DO_NOT_USE(X) DO_NOT_USE_##X
+#endif
 
 typedef struct ks_stream_
 {
-    unsigned char reserved[sizeof(ks_stream_internal)];
+    bool KS_DO_NOT_USE(is_file);
+    FILE* KS_DO_NOT_USE(file);
+    uint8_t* KS_DO_NOT_USE(data);
+    uint64_t KS_DO_NOT_USE(start);
+    uint64_t KS_DO_NOT_USE(length);
+    uint64_t KS_DO_NOT_USE(pos);
+    uint64_t KS_DO_NOT_USE(bits);
+    int KS_DO_NOT_USE(bits_left);
 } ks_stream;
+
+typedef struct ks_handle_
+{
+    ks_stream KS_DO_NOT_USE(stream);
+    /* Might need to add parent/rootdata pointer as well... */
+    int KS_DO_NOT_USE(pos);
+    void* KS_DO_NOT_USE(data);
+    ks_type KS_DO_NOT_USE(type);
+    int KS_DO_NOT_USE(type_size);
+    void* KS_DO_NOT_USE(write_func); /* To write back */
+    uint64_t KS_DO_NOT_USE(last_size); /* To make sure the size when writing back isn't too big */
+} ks_handle;
 
 typedef struct ks_bytes_
 {
-    unsigned char reserved[sizeof(ks_bytes_internal)];
+    ks_stream KS_DO_NOT_USE(stream);
+    uint64_t KS_DO_NOT_USE(pos);
+    int KS_DO_NOT_USE(length);
 } ks_bytes;
-
-#ifndef KS_DEPEND_ON_INTERNALS
-    #define ks_stream_internal_ ks_stream_internal_DO_NOT_USE_THIS
-    #define ks_stream_internal  ks_stream_internal_DO_NOT_USE_THIS
-    #define ks_handle_internal_ ks_handle_internal_DO_NOT_USE_THIS
-    #define ks_handle_internal  ks_handle_internal_DO_NOT_USE_THIS
-    #define ks_bytes_internal_  ks_bytes_internal_DO_NOT_USE_THIS
-    #define ks_bytes_internal   ks_bytes_internal_DO_NOT_USE_THIS
-#endif
 
 typedef struct ks_array_generic_
 {
