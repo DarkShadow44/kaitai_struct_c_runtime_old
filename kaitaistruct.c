@@ -310,22 +310,6 @@ int ks_allocate_handle(ks_handle** handle, ks_stream* stream, void* data, ks_typ
     return 0;
 }
 
-int ks_allocate_handle_array(ks_handle** handle, ks_stream* stream, void* data, ks_type type, int type_size, void* array_data, int64_t array_size)
-{
-    ks_handle* ret = calloc(1, sizeof(ks_handle));
-
-    ret->stream = stream;
-    ret->pos = stream->pos;
-    ret->data = data;
-    ret->type = type;
-    ret->type_size = type_size;
-    ret->array_data = array_data;
-    ret->array_size = array_size;
-
-    *handle = ret;
-    return 0;
-}
-
 int ks_destroy_handle(ks_handle* handle)
 {
     free(handle);
