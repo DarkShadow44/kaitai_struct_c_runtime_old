@@ -15,59 +15,63 @@
 
 REVERSE_FUNC(uint8_t);
 
-int ks_stream_create_from_file(ks_stream** stream, FILE* file)
+int ks_stream_init_from_file(ks_stream* stream, FILE* file)
 {
-    ks_stream* ret = calloc(1, sizeof(ks_stream));
+    ks_stream_internal* ret = (ks_stream_internal*)stream->reserved;
+
+    memset(ret, 0, sizeof(ks_stream_internal));
 
     ret->is_file = 1;
     ret->file = file;
 
     fseek(file, 0, SEEK_END);
     ret->length = ftell(file);
-    *stream = ret;
     return 0;
 }
 
-int ks_stream_create_from_bytes(ks_stream** stream, ks_bytes* bytes)
+int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes)
 {
-    ks_stream* ret = calloc(1, sizeof(ks_stream));
+    ks_stream_internal* ret = (ks_stream_internal*)stream->reserved;
+    ks_bytes_internal* b = (ks_bytes_internal*)bytes->reserved;
 
-    ret->parent = bytes->stream;
-    ret->is_file = ret->parent->is_file;
-    ret->file = ret->parent->file;
-    ret->data = ret->parent->data;
-    ret->start = bytes->pos;
-    ret->length = bytes->length;
-    *stream = ret;
+    memset(ret, 0, sizeof(ks_stream_internal));
+
+    ret->is_file = b->stream.is_file;
+    ret->file = b->stream.file;
+    ret->data = b->stream.data;
+    ret->start = b->pos;
+    ret->length = b->length;
     return 0;
 }
 
-int ks_stream_create_from_memory(ks_stream** stream, uint8_t* data, int len)
+int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len)
 {
-    ks_stream* ret = calloc(1, sizeof(ks_stream));
+    ks_stream_internal* ret = (ks_stream_internal*)stream->reserved;
+
+    memset(ret, 0, sizeof(ks_stream_internal));
 
     ret->is_file = 1;
     ret->data = data;
     ret->length = len;
-    *stream = ret;
     return 0;
 }
 
 static int stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
 {
-    CHECK2(stream->pos + len > stream->length, "End of stream");
-    if (stream->is_file)
+    ks_stream_internal* s = (ks_stream_internal*)stream->reserved;
+    CHECK2(s->pos + len > s->length, "End of stream");
+    if (s->is_file)
     {
-        int success = fseek(stream->file, stream->start + stream->pos, SEEK_SET);
-        size_t read = fread(bytes, 1, len, stream->file);
+        int success = fseek(s->file, s->start + s->pos, SEEK_SET);
+        size_t read = fread(bytes, 1, len, s->file);
         CHECK2(success != 0, "Failed to seek");
         CHECK2(len != read, "Failed to read");
     }
     else
     {
-        memcpy(bytes, stream->data + stream->start + stream->pos, len);
+        memcpy(bytes, s->data + s->start + s->pos, len);
     }
-    stream->pos += len;
+    s->pos += len;
     return 0;
 }
 
@@ -210,11 +214,12 @@ static uint64_t get_mask_ones(int n) {
 
 static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, bool big_endian)
 {
+    ks_stream_internal* s = (ks_stream_internal*)stream->reserved;
     uint64_t mask = get_mask_ones(n); // raw mask with required number of 1s, starting from lowest bit
-    int bits_needed = n - stream->bits_left;
+    int bits_needed = n - s->bits_left;
     if (bits_needed > 0)
     {
-        char buf[8];
+        uint8_t buf[8];
         int bytes_needed = ((bits_needed - 1) / 8) + 1;
         CHECK2(bytes_needed > 8, "More than 8 bytes requested");
         CHECK(stream_read_bytes(stream, bytes_needed, buf));
@@ -223,37 +228,37 @@ static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, bool big_
             uint8_t b = buf[i];
             if (big_endian)
             {
-                stream->bits <<= 8;
-                stream->bits |= b;
+                s->bits <<= 8;
+                s->bits |= b;
             }
             else
             {
-                stream->bits |= (((uint64_t)b) << stream->bits_left);
+                s->bits |= (((uint64_t)b) << s->bits_left);
             }
-            stream->bits_left += 8;
+            s->bits_left += 8;
         }
     }
 
     if (big_endian)
     {
         // shift mask to align with highest bits available in @bits
-        int shift_bits = stream->bits_left - n;
+        int shift_bits = s->bits_left - n;
         mask <<= shift_bits;
 
         // derive reading result
-        *value = (stream->bits & mask) >> shift_bits;
+        *value = (s->bits & mask) >> shift_bits;
         // clear top bits that we've just read => AND with 1s
-        stream->bits_left -= n;
-        mask = get_mask_ones(stream->bits_left);
-        stream->bits &= mask;
+        s->bits_left -= n;
+        mask = get_mask_ones(s->bits_left);
+        s->bits &= mask;
     }
     else
     {
         // derive reading result
-        *value = stream->bits & mask;
+        *value = s->bits & mask;
         // remove bottom bits that we've just read by shifting
-        stream->bits >>= n;
-        stream->bits_left -= n;
+        s->bits >>= n;
+        s->bits_left -= n;
     }
     return 0;
 }
@@ -268,51 +273,42 @@ int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value)
     return stream_read_bits(stream, width, value, 1);
 }
 
-int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes** bytes)
+int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
 {
-    ks_bytes* ret;
+    ks_bytes_internal* ret = (ks_bytes_internal*)bytes->reserved;
+    ks_stream_internal* s = (ks_stream_internal*)stream->reserved;
 
-    CHECK2(stream->pos + len > stream->length, "End of stream");
+    CHECK2(s->pos + len > s->length, "End of stream");
 
-    ret = calloc(1, sizeof(ks_bytes));
     ret->length = len;
-    ret->stream = stream;
-    ret->pos = stream->pos;
-    *bytes = ret;
+    ret->stream = *s;
+    ret->pos = s->pos;
 
-    stream->pos += len;
+    s->pos += len;
     return 0;
 }
 
-int ks_bytes_destroy(ks_bytes* bytes)
+int ks_init_handle(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size)
 {
-    free(bytes);
-    return 0;
-}
+    ks_handle_internal* ret = (ks_handle_internal*)handle->reserved;
+    ks_stream_internal* s = (ks_stream_internal*)stream->reserved;
 
-int ks_stream_destroy(ks_stream* stream)
-{
-    free(stream);
-    return 0;
-}
+    memset(ret, 0, sizeof(ks_handle_internal));
 
-int ks_allocate_handle(ks_handle** handle, ks_stream* stream, void* data, ks_type type, int type_size)
-{
-    ks_handle* ret = calloc(1, sizeof(ks_handle));
-
-    ret->stream = stream;
-    ret->pos = stream->pos;
+    ret->stream = *s;
+    ret->pos = s->pos;
     ret->data = data;
     ret->type = type;
     ret->type_size = type_size;
-
-    *handle = ret;
     return 0;
 }
 
-int ks_destroy_handle(ks_handle* handle)
+int ks_array_max_int(ks_handle* handle)
 {
-    free(handle);
+    ks_handle_internal* h = (ks_handle_internal*)handle->reserved;
+    ks_array_generic array;
+    memcpy(&array, h->data, sizeof(ks_array_generic));
+    /* TODO */
     return 0;
 }
 
