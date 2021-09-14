@@ -9,9 +9,7 @@
 #define CHECK(expr) \
    CHECK2(expr, "")
 
-#ifndef __cplusplus
-typedef int bool;
-#endif
+typedef char ks_bool;
 
 typedef enum ks_type_
 {
@@ -33,7 +31,7 @@ typedef enum ks_type_
 
 typedef struct ks_stream_
 {
-    bool KS_DO_NOT_USE(is_file);
+    ks_bool KS_DO_NOT_USE(is_file);
     FILE* KS_DO_NOT_USE(file);
     uint8_t* KS_DO_NOT_USE(data);
     uint64_t KS_DO_NOT_USE(start);
@@ -53,7 +51,7 @@ typedef struct ks_handle_
     int KS_DO_NOT_USE(type_size);
     void* KS_DO_NOT_USE(write_func); /* To write back */
     uint64_t KS_DO_NOT_USE(last_size); /* To make sure the size when writing back isn't too big */
-    bool KS_DO_NOT_USE(temporary); /* To mark something allocated as temporary, e.g. strings */
+    ks_bool KS_DO_NOT_USE(temporary); /* To mark something allocated as temporary, e.g. strings */
 } ks_handle;
 
 typedef struct ks_bytes_

@@ -73,7 +73,7 @@ static int stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
     return 0;
 }
 
-static int stream_read_int(ks_stream* stream, int len, bool big_endian, int64_t* value)
+static int stream_read_int(ks_stream* stream, int len, ks_bool big_endian, int64_t* value)
 {
     uint8_t bytes[8];
     int64_t ret = 0;
@@ -210,7 +210,7 @@ static uint64_t get_mask_ones(int n) {
     return ((uint64_t) 1 << n) - 1;
 }
 
-static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, bool big_endian)
+static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, ks_bool big_endian)
 {
     uint64_t mask = get_mask_ones(n); // raw mask with required number of 1s, starting from lowest bit
     int bits_needed = n - stream->bits_left;
