@@ -1,3 +1,6 @@
+#ifndef KAITAI_STRUCT_H
+#define KAITAI_STRUCT_H
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -177,3 +180,5 @@ int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type typ
 ks_string ks_string_concat(ks_string s1, ks_string s2);
 int ks_string_destroy(ks_string s);
 ks_string ks_string_from_int(int64_t i, int base);
+
+#endif
