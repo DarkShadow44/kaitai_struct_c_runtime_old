@@ -329,6 +329,26 @@ ks_string ks_string_concat(ks_string s1, ks_string s2)
     return ret;
 }
 
+ks_string ks_string_from_int(int64_t i, int base)
+{
+    char buf[20] = {0};
+    if (base == 10)
+    {
+        sprintf(buf, "%lld", i);
+    }
+    else if (base == 16)
+    {
+        sprintf(buf, "%llx", i);
+    }
+    ks_string ret = {0};
+    ret._handle.temporary = 1;
+    ret.len = strlen(buf);
+    ret.data = calloc(1, ret.len + 1);
+    memcpy(ret.data, buf, ret.len);
+
+    return ret;
+}
+
 int ks_string_destroy(ks_string s)
 {
     free(s.data);
