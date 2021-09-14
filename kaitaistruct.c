@@ -308,3 +308,29 @@ int ks_array_max_int(ks_handle* handle)
     return 0;
 }
 
+ks_string ks_string_concat(ks_string s1, ks_string s2)
+{
+    ks_string ret = {0};
+    ret._handle.temporary = 1;
+    ret.len = s1.len + s2.len;
+    ret.data = calloc(1, ret.len + 1);
+    memcpy(ret.data, s1.data, s1.len);
+    memcpy(ret.data + s1.len, s2.data, s2.len);
+
+    if (s1._handle.temporary)
+    {
+        ks_string_destroy(s1);
+    }
+    if (s2._handle.temporary)
+    {
+        ks_string_destroy(s2);
+    }
+
+    return ret;
+}
+
+int ks_string_destroy(ks_string s)
+{
+    free(s.data);
+}
+

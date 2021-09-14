@@ -53,6 +53,7 @@ typedef struct ks_handle_
     int KS_DO_NOT_USE(type_size);
     void* KS_DO_NOT_USE(write_func); /* To write back */
     uint64_t KS_DO_NOT_USE(last_size); /* To make sure the size when writing back isn't too big */
+    bool KS_DO_NOT_USE(temporary); /* To mark something allocated as temporary, e.g. strings */
 } ks_handle;
 
 typedef struct ks_bytes_
@@ -139,6 +140,12 @@ typedef struct ks_array_float64_
     double* data;
 } ks_array_float64;
 
+typedef struct ks_string_
+{
+    ks_handle _handle;
+    char* data;
+    int64_t len;
+} ks_string;
 
 int ks_stream_init_from_file(ks_stream* stream, FILE* file);
 int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len);
@@ -169,3 +176,5 @@ int ks_stream_destroy(ks_stream* stream);
 
 int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size);
 
+ks_string ks_string_concat(ks_string s1, ks_string s2);
+int ks_string_destroy(ks_string s);
