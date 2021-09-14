@@ -286,7 +286,7 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
     return 0;
 }
 
-int ks_init_handle(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size)
+int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size)
 {
     ks_handle ret = {0};
 

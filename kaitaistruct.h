@@ -167,6 +167,5 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes);
 int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
 
-int ks_init_handle(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size);
-
+int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size);
 
