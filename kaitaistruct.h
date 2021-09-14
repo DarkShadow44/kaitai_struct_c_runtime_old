@@ -9,7 +9,9 @@
 #define CHECK(expr) \
    CHECK2(expr, "")
 
+#ifndef __cplusplus
 typedef int bool;
+#endif
 
 typedef enum ks_type_
 {
