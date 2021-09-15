@@ -15,10 +15,11 @@
 
 REVERSE_FUNC(uint8_t);
 
-int ks_stream_init_from_file(ks_stream* stream, FILE* file)
+int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config)
 {
     ks_stream ret = {0};
 
+    ret.config = *config;
     ret.is_file = 1;
     ret.file = file;
 
@@ -33,6 +34,7 @@ int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes)
 {
     ks_stream ret = {0};
 
+    ret.config = bytes->stream.config;
     ret.is_file = bytes->stream.is_file;
     ret.file = bytes->stream.file;
     ret.data = bytes->stream.data;
@@ -43,10 +45,11 @@ int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes)
     return 0;
 }
 
-int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len)
+int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config)
 {
     ks_stream ret = {0};
 
+    ret.config = *config;
     ret.is_file = 1;
     ret.data = data;
     ret.length = len;

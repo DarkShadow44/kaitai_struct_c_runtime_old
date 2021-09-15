@@ -32,8 +32,20 @@ typedef enum ks_type_
 #define KS_DO_NOT_USE(X) DO_NOT_USE_##X
 #endif
 
+typedef struct ks_data_
+{
+    void* data;
+    uint64_t length;
+} ks_data;
+
+typedef struct ks_config_
+{
+    int (*inflate_func)(ks_data* data_in, ks_data* data_out);
+} ks_config;
+
 typedef struct ks_stream_
 {
+    ks_config config;
     ks_bool KS_DO_NOT_USE(is_file);
     FILE* KS_DO_NOT_USE(file);
     uint8_t* KS_DO_NOT_USE(data);
@@ -61,7 +73,7 @@ typedef struct ks_bytes_
 {
     ks_stream KS_DO_NOT_USE(stream);
     uint64_t KS_DO_NOT_USE(pos);
-    int KS_DO_NOT_USE(length);
+    uint64_t KS_DO_NOT_USE(length);
 } ks_bytes;
 
 typedef struct ks_array_generic_
@@ -148,8 +160,8 @@ typedef struct ks_string_
     int64_t len;
 } ks_string;
 
-int ks_stream_init_from_file(ks_stream* stream, FILE* file);
-int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len);
+int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config);
+int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config);
 int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes);
 
 int ks_stream_read_u1(ks_stream* stream, uint8_t* value);
@@ -180,5 +192,56 @@ int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type typ
 ks_string ks_string_concat(ks_string s1, ks_string s2);
 int ks_string_destroy(ks_string s);
 ks_string ks_string_from_int(int64_t i, int base);
+
+/* Dynamic functions */
+
+#ifdef KS_ZLIB
+#include <zlib.h>
+inline int ks_inflate(ks_data* data_in, ks_data* data_out)
+{
+    z_stream strm = {0};
+    uint8_t outbuffer[1024*64];
+    int ret;
+
+    memset(data_out, 0, sizeof(ks_data));
+
+    if (inflateInit(&strm) != Z_OK)
+        return 1;
+
+    strm.next_in = data_in->data;
+    strm.avail_in = data_in->length;
+
+    do {
+        strm.next_out = outbuffer;
+        strm.avail_out = sizeof(outbuffer);
+
+        ret = inflate(&strm, 0);
+
+        if (data_out->length < strm.total_out) {
+            data_out->data = realloc(data_out->data, strm.total_out);
+            memcpy(data_out->data + data_out->length, outbuffer, strm.total_out - data_out->length);
+            data_out->length = strm.total_out;
+        }
+    } while (ret == Z_OK);
+
+    if (ret != Z_STREAM_END)
+        return 1;
+
+    if (inflateEnd(&strm) != Z_OK)
+        return 1;
+
+    return 0;
+}
+#else
+inline int ks_inflate(ks_data* data_in, ks_data* data_out)
+{
+    return 1;
+}
+#endif
+
+inline int ks_config_init(ks_config* config)
+{
+    config->inflate_func = ks_inflate;
+}
 
 #endif
