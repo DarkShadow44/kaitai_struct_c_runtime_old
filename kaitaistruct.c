@@ -289,6 +289,40 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
     return 0;
 }
 
+ks_bytes ks_bytes_from_data(uint64_t count, ...)
+{
+    ks_bytes ret = {0};
+    va_list list;
+
+    ret.length = count;
+    ret.data_direct = calloc(1, count);
+    va_start(list, count);
+
+    for (int i = 0; i < count; i++)
+    {
+        ret.data_direct[i] = va_arg(list, int);
+    }
+    va_end(list);
+
+    return ret;
+}
+
+int ks_bytes_get_length(ks_bytes* bytes, uint64_t* length)
+{
+    *length = bytes->length;
+    return 0;
+}
+
+int ks_bytes_get_data(ks_bytes* bytes, uint8_t* data)
+{
+    if (bytes->data_direct)
+    {
+        memcpy(data, bytes->data_direct, bytes->length);
+        return 0;
+    }
+    return stream_read_bytes(&bytes->stream, bytes->length, data);
+}
+
 int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size)
 {
     ks_handle ret = {0};

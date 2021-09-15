@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 #define CHECK2(expr, err) \
    if (expr) { printf("%s:%d - %s\n", __FILE__, __LINE__, err); return 1; }
@@ -74,6 +75,7 @@ typedef struct ks_bytes_
     ks_stream KS_DO_NOT_USE(stream);
     uint64_t KS_DO_NOT_USE(pos);
     uint64_t KS_DO_NOT_USE(length);
+    uint8_t* KS_DO_NOT_USE(data_direct);
 } ks_bytes;
 
 typedef struct ks_array_generic_
@@ -186,6 +188,9 @@ int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value);
 int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes);
 int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
+ks_bytes ks_bytes_from_data(uint64_t count, ...);
+int ks_bytes_get_length(ks_bytes* bytes, uint64_t* length);
+int ks_bytes_get_data(ks_bytes* bytes, uint8_t* data);
 
 int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size);
 
