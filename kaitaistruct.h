@@ -34,7 +34,7 @@ typedef enum ks_type_
 
 typedef struct ks_data_
 {
-    void* data;
+    uint8_t* data;
     uint64_t length;
 } ks_data;
 
@@ -195,7 +195,7 @@ ks_string ks_string_from_int(int64_t i, int base);
 
 /* Dynamic functions */
 
-#ifdef KS_ZLIB
+#ifdef KS_USE_ZLIB
 #include <zlib.h>
 inline int ks_inflate(ks_data* data_in, ks_data* data_out)
 {
@@ -208,7 +208,7 @@ inline int ks_inflate(ks_data* data_in, ks_data* data_out)
     if (inflateInit(&strm) != Z_OK)
         return 1;
 
-    strm.next_in = data_in->data;
+    strm.next_in = (Bytef*)data_in->data;
     strm.avail_in = data_in->length;
 
     do {
@@ -218,7 +218,7 @@ inline int ks_inflate(ks_data* data_in, ks_data* data_out)
         ret = inflate(&strm, 0);
 
         if (data_out->length < strm.total_out) {
-            data_out->data = realloc(data_out->data, strm.total_out);
+            data_out->data = (uint8_t*)realloc(data_out->data, strm.total_out);
             memcpy(data_out->data + data_out->length, outbuffer, strm.total_out - data_out->length);
             data_out->length = strm.total_out;
         }
@@ -242,6 +242,7 @@ inline int ks_inflate(ks_data* data_in, ks_data* data_out)
 inline int ks_config_init(ks_config* config)
 {
     config->inflate_func = ks_inflate;
+    return 0;
 }
 
 #endif
