@@ -58,7 +58,7 @@ int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_con
     return 0;
 }
 
-static int stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
+static int stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* bytes)
 {
     CHECK2(stream->pos + len > stream->length, "End of stream");
     if (stream->is_file)
@@ -72,6 +72,12 @@ static int stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
     {
         memcpy(bytes, stream->data + stream->start + stream->pos, len);
     }
+    return 0;
+}
+
+static int stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
+{
+    CHECK(stream_read_bytes_nomove(stream, len, bytes));
     stream->pos += len;
     return 0;
 }
@@ -307,20 +313,20 @@ ks_bytes ks_bytes_from_data(uint64_t count, ...)
     return ret;
 }
 
-int ks_bytes_get_length(ks_bytes* bytes, uint64_t* length)
+int ks_bytes_get_length(const ks_bytes* bytes, uint64_t* length)
 {
     *length = bytes->length;
     return 0;
 }
 
-int ks_bytes_get_data(ks_bytes* bytes, uint8_t* data)
+int ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
 {
     if (bytes->data_direct)
     {
         memcpy(data, bytes->data_direct, bytes->length);
         return 0;
     }
-    return stream_read_bytes(&bytes->stream, bytes->length, data);
+    return stream_read_bytes_nomove(&bytes->stream, bytes->length, data);
 }
 
 int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size)

@@ -189,8 +189,8 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes);
 int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
 ks_bytes ks_bytes_from_data(uint64_t count, ...);
-int ks_bytes_get_length(ks_bytes* bytes, uint64_t* length);
-int ks_bytes_get_data(ks_bytes* bytes, uint8_t* data);
+int ks_bytes_get_length(const ks_bytes* bytes, uint64_t* length);
+int ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
 
 int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size);
 
