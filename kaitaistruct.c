@@ -1,6 +1,9 @@
 #define KS_DEPEND_ON_INTERNALS
 #include "kaitaistruct.h"
 
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#define max(a,b) (((a) > (b)) ? (a) : (b))
+
 #define REVERSE_FUNC(type) \
     static void reverse_##type(type* data, int len) { \
         int start = 0, end = len - 1; \
@@ -101,6 +104,45 @@ static int stream_read_int(ks_stream* stream, int len, ks_bool big_endian, int64
     *value = ret;
     return 0;
 }
+
+ks_bool is_big_endian(void)
+{
+    int n = 1;
+    return *(char *)&n == 0;
+}
+
+static int stream_read_float(ks_stream* stream, ks_bool big_endian, float* value)
+{
+    uint8_t bytes[sizeof(*value)];
+    int64_t ret = 0;
+
+    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes));
+
+    if (big_endian != is_big_endian())
+    {
+        reverse_uint8_t(bytes, sizeof(bytes));
+    }
+
+    memcpy(value, bytes, sizeof(bytes));
+    return 0;
+}
+
+static int stream_read_double(ks_stream* stream, ks_bool big_endian, double* value)
+{
+    uint8_t bytes[sizeof(*value)];
+    int64_t ret = 0;
+
+    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes));
+
+    if (big_endian != is_big_endian())
+    {
+        reverse_uint8_t(bytes, sizeof(bytes));
+    }
+
+    memcpy(value, bytes, sizeof(bytes));
+    return 0;
+}
+
 
 int ks_stream_read_u1(ks_stream* stream, uint8_t* value)
 {
@@ -269,6 +311,26 @@ static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, ks_bool b
     return 0;
 }
 
+int ks_stream_read_f4le(ks_stream* stream, float* value)
+{
+    return stream_read_float(stream, 0, value);
+}
+
+int ks_stream_read_f4be(ks_stream* stream, float* value)
+{
+    return stream_read_float(stream, 1, value);
+}
+
+int ks_stream_read_f8le(ks_stream* stream, double* value)
+{
+    return stream_read_double(stream, 0, value);
+}
+
+int ks_stream_read_f8be(ks_stream* stream, double* value)
+{
+    return stream_read_double(stream, 1, value);
+}
+
 int ks_stream_read_bits_le(ks_stream* stream, int width, uint64_t* value)
 {
     return stream_read_bits(stream, width, value, 0);
@@ -343,12 +405,146 @@ int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type typ
     return 0;
 }
 
-int ks_array_max_int(ks_handle* handle)
+static int64_t array_get_int(ks_handle* handle, void* data)
 {
+    switch(handle->type)
+    {
+        case KS_TYPE_ARRAY_UINT:
+            switch(handle->type_size)
+            {
+                case 1:
+                    return *(uint8_t*)data;
+                case 2:
+                    return *(uint16_t*)data;
+                case 4:
+                    return *(uint32_t*)data;
+                case 8:
+                    return *(uint64_t*)data;
+            }
+          case KS_TYPE_ARRAY_INT:
+            switch(handle->type_size)
+            {
+                case 1:
+                    return *(int8_t*)data;
+                case 2:
+                    return *(int16_t*)data;
+                case 4:
+                    return *(int32_t*)data;
+                case 8:
+                    return *(int64_t*)data;
+            }
+    }
+    return 0;
+}
+
+static double array_get_float(ks_handle* handle, void* data)
+{
+   if (handle->type == KS_TYPE_ARRAY_FLOAT)
+   {
+       switch (handle->type_size)
+       {
+           case 4:
+               return *(float*)data;
+           case 8:
+               return *(double*)data;
+       }
+   }
+    return 0;
+}
+
+static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, void* other)
+{
+    if (max)
+    {
+        switch (handle->type)
+        {
+            case KS_TYPE_ARRAY_UINT:
+            case KS_TYPE_ARRAY_INT:
+                return array_get_int(handle, other) > array_get_int(handle, minmax);
+            case KS_TYPE_ARRAY_FLOAT:
+                return array_get_float(handle, other) > array_get_float(handle, minmax);
+            case KS_TYPE_ARRAY_STRING:
+                ks_string* str_minmax = (ks_string*)minmax;
+                ks_string* str_other = (ks_string*)other;
+                int len = min(str_minmax->len, str_other->len);
+                return strncmp(str_other->data, str_minmax->data, len) > 0;
+        }
+    }
+    else
+    {
+        switch (handle->type)
+        {
+            case KS_TYPE_ARRAY_UINT:
+            case KS_TYPE_ARRAY_INT:
+                return array_get_int(handle, other) < array_get_int(handle, minmax);
+            case KS_TYPE_ARRAY_FLOAT:
+                return array_get_float(handle, other) > array_get_float(handle, minmax);
+            case KS_TYPE_ARRAY_STRING:
+                 ks_string* str_minmax = (ks_string*)minmax;
+                ks_string* str_other = (ks_string*)other;
+                int len = min(str_minmax->len, str_other->len);
+                return strncmp(str_other->data, str_minmax->data, len) < 0;
+        }
+    }
+    return 0;
+}
+
+static void* array_min_max(ks_handle* handle, ks_bool max)
+{
+    char* pointer;
     ks_array_generic array;
     memcpy(&array, handle->data, sizeof(ks_array_generic)); /* Type punning */
-    /* TODO */
-    return 0;
+
+    if (array.size == 0)
+    {
+        return 0;
+    }
+
+    pointer = array.data;
+    for (int i = 1; i < array.size; i++)
+    {
+        char* data_new = handle->data + (i * handle->type_size);
+        if (array_min_max_func(handle, max, pointer, data_new))
+        {
+            pointer = data_new;
+        }
+    }
+}
+
+int64_t ks_array_min_int(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 0);
+    return array_get_int(handle, ret);
+}
+
+int64_t ks_array_max_int(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 1);
+    return array_get_int(handle, ret);
+}
+
+double ks_array_min_float(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 0);
+    return array_get_float(handle, ret);
+}
+
+double ks_array_max_float(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 1);
+    return array_get_float(handle, ret);
+}
+
+ks_string ks_array_min_string(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 0);
+    return *(ks_string*)ret;
+}
+
+ks_string ks_array_max_string(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 1);
+    return *(ks_string*)ret;
 }
 
 ks_string ks_string_concat(ks_string s1, ks_string s2)

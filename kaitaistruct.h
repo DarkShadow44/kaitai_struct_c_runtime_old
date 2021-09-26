@@ -18,6 +18,7 @@ typedef char ks_bool;
 typedef enum ks_type_
 {
     KS_TYPE_UNKNOWN = 0,
+    KS_TYPE_ARRAY_UINT,
     KS_TYPE_ARRAY_INT,
     KS_TYPE_ARRAY_FLOAT,
     KS_TYPE_ARRAY_STRING,
@@ -77,6 +78,13 @@ typedef struct ks_bytes_
     uint64_t KS_DO_NOT_USE(length);
     uint8_t* KS_DO_NOT_USE(data_direct);
 } ks_bytes;
+
+typedef struct ks_string_
+{
+    ks_handle _handle;
+    char* data;
+    int64_t len;
+} ks_string;
 
 typedef struct ks_array_generic_
 {
@@ -141,26 +149,26 @@ typedef struct ks_array_int64_t_
     int64_t* data;
 } ks_array_int64_t;
 
-typedef struct ks_array_float32_
+typedef struct ks_array_float_
 {
     ks_handle _handle;
     int64_t size;
     float* data;
-} ks_array_float32;
+} ks_array_float;
 
-typedef struct ks_array_float64_
+typedef struct ks_array_double_
 {
     ks_handle _handle;
     int64_t size;
     double* data;
-} ks_array_float64;
+} ks_array_double;
 
-typedef struct ks_string_
+typedef struct ks_array_string_
 {
     ks_handle _handle;
-    char* data;
-    int64_t len;
-} ks_string;
+    int64_t size;
+    ks_string* data;
+} ks_array_string;
 
 int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config);
 int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config);
@@ -182,6 +190,11 @@ int ks_stream_read_s2be(ks_stream* stream, int16_t* value);
 int ks_stream_read_s4be(ks_stream* stream, int32_t* value);
 int ks_stream_read_s8be(ks_stream* stream, int64_t* value);
 
+int ks_stream_read_f4le(ks_stream* stream, float* value);
+int ks_stream_read_f4be(ks_stream* stream, float* value);
+int ks_stream_read_f8le(ks_stream* stream, double* value);
+int ks_stream_read_f8be(ks_stream* stream, double* value);
+
 int ks_stream_read_bits_le(ks_stream* stream, int width, uint64_t* value);
 int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value);
 
@@ -197,6 +210,13 @@ int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type typ
 ks_string ks_string_concat(ks_string s1, ks_string s2);
 int ks_string_destroy(ks_string s);
 ks_string ks_string_from_int(int64_t i, int base);
+
+int64_t ks_array_min_int(ks_handle* handle);
+int64_t ks_array_max_int(ks_handle* handle);
+double ks_array_min_float(ks_handle* handle);
+double ks_array_max_float(ks_handle* handle);
+ks_string ks_array_min_string(ks_handle* handle);
+ks_string ks_array_max_string(ks_handle* handle);
 
 /* Dynamic functions */
 
