@@ -640,6 +640,69 @@ ks_string ks_string_from_bytes(ks_bytes* bytes)
     return ret;
 }
 
+ks_array_int64_t ks_array_int64_t_from_data(uint64_t count, ...)
+{
+    ks_array_int64_t ret = {0};
+    va_list list;
+
+    ret._handle.type = KS_TYPE_ARRAY_INT;
+    ret._handle.type_size = 8;
+    ret._handle.temporary = 1;
+    ret.size = count;
+    ret.data = calloc(ret._handle.type_size, count);
+    va_start(list, count);
+
+    for (int i = 0; i < count; i++)
+    {
+        ret.data[i] = va_arg(list, int64_t);
+    }
+    va_end(list);
+
+    return ret;
+}
+
+ks_array_double ks_array_double_from_data(uint64_t count, ...)
+{
+    ks_array_double ret = {0};
+    va_list list;
+
+    ret._handle.type = KS_TYPE_ARRAY_FLOAT;
+    ret._handle.type_size = 8;
+    ret._handle.temporary = 1;
+    ret.size = count;
+    ret.data = calloc(ret._handle.type_size, count);
+    va_start(list, count);
+
+    for (int i = 0; i < count; i++)
+    {
+        ret.data[i] = va_arg(list, double);
+    }
+    va_end(list);
+
+    return ret;
+}
+
+ks_array_string ks_array_string_from_data(uint64_t count, ...)
+{
+    ks_array_string ret = {0};
+    va_list list;
+
+    ret._handle.type = KS_TYPE_ARRAY_STRING;
+    ret._handle.type_size = sizeof(ks_string);
+    ret._handle.temporary = 1;
+    ret.size = count;
+    ret.data = calloc(ret._handle.type_size, count);
+    va_start(list, count);
+
+    for (int i = 0; i < count; i++)
+    {
+        ret.data[i] = va_arg(list, ks_string);
+    }
+    va_end(list);
+
+    return ret;
+}
+
 int ks_string_destroy(ks_string s)
 {
     free(s.data);
