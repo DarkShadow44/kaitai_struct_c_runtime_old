@@ -199,6 +199,7 @@ int ks_stream_read_bits_le(ks_stream* stream, int width, uint64_t* value);
 int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value);
 
 int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes);
+int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error, ks_bytes* bytes);
 int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
 ks_bytes ks_bytes_from_data(uint64_t count, ...);
@@ -210,6 +211,7 @@ int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type typ
 ks_string ks_string_concat(ks_string s1, ks_string s2);
 int ks_string_destroy(ks_string s);
 ks_string ks_string_from_int(int64_t i, int base);
+ks_string ks_string_from_bytes(ks_bytes* bytes);
 
 int64_t ks_array_min_int(ks_handle* handle);
 int64_t ks_array_max_int(ks_handle* handle);

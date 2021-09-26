@@ -353,7 +353,37 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
 
     stream->pos += len;
 
-    memcpy(bytes, &ret, sizeof(ks_bytes));
+    *bytes = ret;
+    return 0;
+}
+
+int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error, ks_bytes* bytes)
+{
+    ks_bytes ret = {0};
+    uint8_t byte;
+    uint64_t start = stream->pos;
+    uint64_t len;
+    do
+    {
+        CHECK(stream_read_bytes(stream, 1, &byte));
+    } while(byte != terminator);
+
+    len = stream->pos - start + 1;
+    if (!consume)
+    {
+        stream->pos--;
+    }
+    if (!include)
+    {
+        len--;
+    }
+
+    ret.length = len;
+    ret.stream = *stream;
+    ret.pos = start;
+
+    *bytes = ret;
+
     return 0;
 }
 
@@ -584,6 +614,16 @@ ks_string ks_string_from_int(int64_t i, int base)
     ret.len = strlen(buf);
     ret.data = calloc(1, ret.len + 1);
     memcpy(ret.data, buf, ret.len);
+
+    return ret;
+}
+
+ks_string ks_string_from_bytes(ks_bytes* bytes)
+{
+    ks_string ret = {0};
+    ret._handle.temporary = 1;
+    ret.data = calloc(1, ret.len + 1);
+    ks_bytes_get_data(bytes, ret.data); // Can't check return here...?
 
     return ret;
 }
