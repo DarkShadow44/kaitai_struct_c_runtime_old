@@ -61,6 +61,18 @@ int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_con
     return 0;
 }
 
+ks_bool ks_stream_is_eof(ks_stream* stream)
+{
+    return stream->pos == stream->length;
+}
+
+int ks_stream_seek(ks_stream* stream, uint64_t pos)
+{
+    CHECK2(pos > stream->length, "End of stream");
+    stream->pos = pos;
+    return 0;
+}
+
 static int stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* bytes)
 {
     CHECK2(stream->pos + len > stream->length, "End of stream");

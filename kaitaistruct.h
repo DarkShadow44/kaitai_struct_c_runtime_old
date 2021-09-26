@@ -202,6 +202,9 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes);
 int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error, ks_bytes* bytes);
 int ks_bytes_destroy(ks_bytes* bytes);
 int ks_stream_destroy(ks_stream* stream);
+ks_bool ks_stream_is_eof(ks_stream* stream);
+int ks_stream_seek(ks_stream* stream, uint64_t pos);
+
 ks_bytes ks_bytes_from_data(uint64_t count, ...);
 int ks_bytes_get_length(const ks_bytes* bytes, uint64_t* length);
 int ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
