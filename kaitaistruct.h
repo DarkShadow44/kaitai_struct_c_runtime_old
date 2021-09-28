@@ -178,6 +178,13 @@ typedef struct ks_array_bytes_
     ks_bytes* data;
 } ks_array_bytes;
 
+typedef struct ks_array_void_
+{
+    ks_handle _handle;
+    int64_t size;
+    void** data;
+} ks_array_void;
+
 int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config);
 int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config);
 int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes);
