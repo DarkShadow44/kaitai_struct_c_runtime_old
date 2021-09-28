@@ -22,6 +22,7 @@ typedef enum ks_type_
     KS_TYPE_ARRAY_INT,
     KS_TYPE_ARRAY_FLOAT,
     KS_TYPE_ARRAY_STRING,
+    KS_TYPE_ARRAY_BYTES,
     KS_TYPE_ARRAY_USERENUM,
     KS_TYPE_ARRAY_USERTYPE,
     KS_TYPE_BYTES,
@@ -169,6 +170,13 @@ typedef struct ks_array_string_
     int64_t size;
     ks_string* data;
 } ks_array_string;
+
+typedef struct ks_array_bytes_
+{
+    ks_handle _handle;
+    int64_t size;
+    ks_bytes* data;
+} ks_array_bytes;
 
 int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config);
 int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config);
