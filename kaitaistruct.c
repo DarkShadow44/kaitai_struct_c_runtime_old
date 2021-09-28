@@ -126,7 +126,6 @@ ks_bool is_big_endian(void)
 static int stream_read_float(ks_stream* stream, ks_bool big_endian, float* value)
 {
     uint8_t bytes[sizeof(*value)];
-    int64_t ret = 0;
 
     CHECK(stream_read_bytes(stream, sizeof(bytes), bytes));
 
@@ -142,7 +141,6 @@ static int stream_read_float(ks_stream* stream, ks_bool big_endian, float* value
 static int stream_read_double(ks_stream* stream, ks_bool big_endian, double* value)
 {
     uint8_t bytes[sizeof(*value)];
-    int64_t ret = 0;
 
     CHECK(stream_read_bytes(stream, sizeof(bytes), bytes));
 
@@ -271,6 +269,13 @@ static uint64_t get_mask_ones(int n) {
     if (n == 64)
         return 0xFFFFFFFFFFFFFFFF;
     return ((uint64_t) 1 << n) - 1;
+}
+
+int ks_stream_align_to_byte(ks_stream* stream)
+{
+    stream->bits = 0;
+    stream->bits_left = 0;
+    return 0;
 }
 
 static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, ks_bool big_endian)
@@ -475,6 +480,8 @@ static int64_t array_get_int(ks_handle* handle, void* data)
                 case 8:
                     return *(int64_t*)data;
             }
+        default:
+            break;
     }
     return 0;
 }
@@ -510,6 +517,8 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
                 ks_string* str_other = (ks_string*)other;
                 int len = min(str_minmax->len, str_other->len);
                 return strncmp(str_other->data, str_minmax->data, len) > 0;
+            default:
+                break;
         }
     }
     else
@@ -526,6 +535,8 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
                 ks_string* str_other = (ks_string*)other;
                 int len = min(str_minmax->len, str_other->len);
                 return strncmp(str_other->data, str_minmax->data, len) < 0;
+            default:
+                break;
         }
     }
     return 0;
@@ -551,6 +562,7 @@ static void* array_min_max(ks_handle* handle, ks_bool max)
             pointer = data_new;
         }
     }
+    return pointer;
 }
 
 int64_t ks_array_min_int(ks_handle* handle)
@@ -615,11 +627,11 @@ ks_string ks_string_from_int(int64_t i, int base)
     char buf[50] = {0};
     if (base == 10)
     {
-        sprintf(buf, "%lld", i);
+        sprintf(buf, "%lld", (long long int)i);
     }
     else if (base == 16)
     {
-        sprintf(buf, "%llx", i);
+        sprintf(buf, "%llx", (long long int)i);
     }
     ks_string ret = {0};
     ret._handle.temporary = 1;
@@ -630,12 +642,12 @@ ks_string ks_string_from_int(int64_t i, int base)
     return ret;
 }
 
-ks_string ks_string_from_bytes(ks_bytes* bytes)
+ks_string ks_string_from_bytes(ks_bytes bytes)
 {
     ks_string ret = {0};
     ret._handle.temporary = 1;
     ret.data = calloc(1, ret.len + 1);
-    ks_bytes_get_data(bytes, ret.data); // Can't check return here...?
+    ks_bytes_get_data(&bytes, (void*)ret.data); // Can't check return here...?
 
     return ret;
 }
@@ -706,5 +718,6 @@ ks_array_string ks_array_string_from_data(uint64_t count, ...)
 int ks_string_destroy(ks_string s)
 {
     free(s.data);
+    return 0;
 }
 
