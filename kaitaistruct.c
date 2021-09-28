@@ -646,8 +646,20 @@ ks_string ks_string_from_bytes(ks_bytes bytes)
 {
     ks_string ret = {0};
     ret._handle.temporary = 1;
+    ret.len = bytes.length;
     ret.data = calloc(1, ret.len + 1);
     ks_bytes_get_data(&bytes, (void*)ret.data); // Can't check return here...?
+
+    return ret;
+}
+
+ks_string ks_string_from_cstr(const char* data)
+{
+    ks_string ret = {0};
+    ret._handle.temporary = 1;
+    ret.len = strlen(data);
+    ret.data = calloc(1, ret.len + 1);
+    memcpy(ret.data, data, ret.len);
 
     return ret;
 }
