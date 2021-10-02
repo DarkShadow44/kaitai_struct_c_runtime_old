@@ -18,22 +18,21 @@
 
 REVERSE_FUNC(uint8_t);
 
-int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config)
+ks_stream ks_stream_create_from_file(FILE* file, ks_config* config)
 {
     ks_stream ret = {0};
 
     ret.config = *config;
     ret.is_file = 1;
     ret.file = file;
+    ret.err = calloc(1, sizeof(ks_bool));
 
     fseek(file, 0, SEEK_END);
     ret.length = ftell(file);
-
-    memcpy(stream, &ret, sizeof(ks_stream));
-    return 0;
+    return ret;
 }
 
-int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes)
+ks_stream ks_stream_create_from_bytes(ks_bytes* bytes)
 {
     ks_stream ret = {0};
 
@@ -43,12 +42,12 @@ int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes)
     ret.data = bytes->stream.data;
     ret.start = bytes->pos;
     ret.length = bytes->length;
+    ret.err = bytes->stream.err;
 
-    memcpy(stream, &ret, sizeof(ks_stream));
-    return 0;
+    return ret;
 }
 
-int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config)
+ks_stream ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config)
 {
     ks_stream ret = {0};
 
@@ -56,9 +55,9 @@ int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_con
     ret.is_file = 1;
     ret.data = data;
     ret.length = len;
+    ret.err = calloc(1, sizeof(ks_bool));
 
-    memcpy(stream, &ret, sizeof(ks_stream));
-    return 0;
+    return ret;
 }
 
 ks_bool ks_stream_is_eof(ks_stream* stream)
@@ -66,43 +65,40 @@ ks_bool ks_stream_is_eof(ks_stream* stream)
     return stream->pos == stream->length;
 }
 
-int ks_stream_seek(ks_stream* stream, uint64_t pos)
+void ks_stream_seek(ks_stream* stream, uint64_t pos)
 {
-    CHECK2(pos > stream->length, "End of stream");
+    CHECK2(pos > stream->length, "End of stream", VOID);
     stream->pos = pos;
-    return 0;
 }
 
-static int stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* bytes)
+static void stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* bytes)
 {
-    CHECK2(stream->pos + len > stream->length, "End of stream");
+    CHECK2(stream->pos + len > stream->length, "End of stream", VOID);
     if (stream->is_file)
     {
         int success = fseek(stream->file, stream->start + stream->pos, SEEK_SET);
         size_t read = fread(bytes, 1, len, stream->file);
-        CHECK2(success != 0, "Failed to seek");
-        CHECK2(len != read, "Failed to read");
+        CHECK2(success != 0, "Failed to seek", VOID);
+        CHECK2(len != read, "Failed to read", VOID);
     }
     else
     {
         memcpy(bytes, stream->data + stream->start + stream->pos, len);
     }
-    return 0;
 }
 
-static int stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
+static void stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
 {
-    CHECK(stream_read_bytes_nomove(stream, len, bytes));
+    CHECK(stream_read_bytes_nomove(stream, len, bytes), VOID);
     stream->pos += len;
-    return 0;
 }
 
-static int stream_read_int(ks_stream* stream, int len, ks_bool big_endian, int64_t* value)
+static int64_t stream_read_int(ks_stream* stream, int len, ks_bool big_endian)
 {
     uint8_t bytes[8];
     int64_t ret = 0;
 
-    CHECK(stream_read_bytes(stream, len, bytes));
+    CHECK(stream_read_bytes(stream, len, bytes), 0);
 
     if (big_endian)
     {
@@ -113,8 +109,7 @@ static int stream_read_int(ks_stream* stream, int len, ks_bool big_endian, int64
     {
         ret += (int64_t)bytes[i] << (i*8);
     }
-    *value = ret;
-    return 0;
+    return ret;
 }
 
 ks_bool is_big_endian(void)
@@ -123,146 +118,134 @@ ks_bool is_big_endian(void)
     return *(char *)&n == 0;
 }
 
-static int stream_read_float(ks_stream* stream, ks_bool big_endian, float* value)
+static float stream_read_float(ks_stream* stream, ks_bool big_endian)
 {
-    uint8_t bytes[sizeof(*value)];
+    float value;
+    uint8_t bytes[sizeof(value)];
 
-    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes));
+    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes), 0);
 
     if (big_endian != is_big_endian())
     {
         reverse_uint8_t(bytes, sizeof(bytes));
     }
 
-    memcpy(value, bytes, sizeof(bytes));
-    return 0;
+    memcpy(&value, bytes, sizeof(bytes));
+    return value;
 }
 
-static int stream_read_double(ks_stream* stream, ks_bool big_endian, double* value)
+static double stream_read_double(ks_stream* stream, ks_bool big_endian)
 {
-    uint8_t bytes[sizeof(*value)];
+    double value;
+    uint8_t bytes[sizeof(value)];
 
-    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes));
+    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes), 0);
 
     if (big_endian != is_big_endian())
     {
         reverse_uint8_t(bytes, sizeof(bytes));
     }
 
-    memcpy(value, bytes, sizeof(bytes));
-    return 0;
+    memcpy(&value, bytes, sizeof(bytes));
+    return value;
 }
 
 
-int ks_stream_read_u1(ks_stream* stream, uint8_t* value)
+uint8_t ks_stream_read_u1(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 1, 0, &temp));
-    *value = (uint8_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 1, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_u2le(ks_stream* stream, uint16_t* value)
+uint16_t ks_stream_read_u2le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 2, 0, &temp));
-    *value = (uint16_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 2, 0), 0);
+    return temp;
 }
-int ks_stream_read_u4le(ks_stream* stream, uint32_t* value)
+uint32_t ks_stream_read_u4le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 4, 0, &temp));
-    *value = (uint32_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 4, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_u8le(ks_stream* stream, uint64_t* value)
+uint64_t ks_stream_read_u8le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 8, 0, &temp));
-    *value = (uint64_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 8, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_u2be(ks_stream* stream, uint16_t* value)
+uint16_t ks_stream_read_u2be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 2, 1, &temp));
-    *value = (uint16_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 2, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_u4be(ks_stream* stream, uint32_t* value)
+uint32_t ks_stream_read_u4be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 4, 1, &temp));
-    *value = (uint32_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 4, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_u8be(ks_stream* stream, uint64_t* value)
+uint64_t ks_stream_read_u8be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 8, 1, &temp));
-    *value = (uint64_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 8, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_s1(ks_stream* stream, int8_t* value)
+int8_t ks_stream_read_s1(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 1, 0, &temp));
-    *value = (int8_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 1, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_s2le(ks_stream* stream, int16_t* value)
+int16_t ks_stream_read_s2le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 2, 0, &temp));
-    *value = (int16_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 2, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_s4le(ks_stream* stream, int32_t* value)
+int32_t ks_stream_read_s4le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 4, 0, &temp));
-    *value = (int32_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 4, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_s8le(ks_stream* stream, int64_t* value)
+int64_t ks_stream_read_s8le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 8, 0, &temp));
-    *value = (int64_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 8, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_s2be(ks_stream* stream, int16_t* value)
+int16_t ks_stream_read_s2be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 2, 1, &temp));
-    *value = (int16_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 2, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_s4be(ks_stream* stream, int32_t* value)
+int32_t ks_stream_read_s4be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 4, 1, &temp));
-    *value = (int32_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 4, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_s8be(ks_stream* stream, int64_t* value)
+int64_t ks_stream_read_s8be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(stream_read_int(stream, 8, 1, &temp));
-    *value = (int64_t)temp;
-    return 0;
+    CHECK(temp = stream_read_int(stream, 8, 1), 0);
+    return temp;
 }
 
 static uint64_t get_mask_ones(int n) {
@@ -271,23 +254,23 @@ static uint64_t get_mask_ones(int n) {
     return ((uint64_t) 1 << n) - 1;
 }
 
-int ks_stream_align_to_byte(ks_stream* stream)
+void ks_stream_align_to_byte(ks_stream* stream)
 {
     stream->bits = 0;
     stream->bits_left = 0;
-    return 0;
 }
 
-static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, ks_bool big_endian)
+static uint64_t stream_read_bits(ks_stream* stream, int n, ks_bool big_endian)
 {
+    uint64_t value;
     uint64_t mask = get_mask_ones(n); // raw mask with required number of 1s, starting from lowest bit
     int bits_needed = n - stream->bits_left;
     if (bits_needed > 0)
     {
         uint8_t buf[8];
         int bytes_needed = ((bits_needed - 1) / 8) + 1;
-        CHECK2(bytes_needed > 8, "More than 8 bytes requested");
-        CHECK(stream_read_bytes(stream, bytes_needed, buf));
+        CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
+        CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
         for (int i = 0; i < bytes_needed; i++)
         {
             uint8_t b = buf[i];
@@ -311,7 +294,7 @@ static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, ks_bool b
         mask <<= shift_bits;
 
         // derive reading result
-        *value = (stream->bits & mask) >> shift_bits;
+        value = (stream->bits & mask) >> shift_bits;
         // clear top bits that we've just read => AND with 1s
         stream->bits_left -= n;
         mask = get_mask_ones(stream->bits_left);
@@ -320,49 +303,61 @@ static int stream_read_bits(ks_stream* stream, int n, uint64_t* value, ks_bool b
     else
     {
         // derive reading result
-        *value = stream->bits & mask;
+        value = stream->bits & mask;
         // remove bottom bits that we've just read by shifting
         stream->bits >>= n;
         stream->bits_left -= n;
     }
-    return 0;
+    return value;
 }
 
-int ks_stream_read_f4le(ks_stream* stream, float* value)
+float ks_stream_read_f4le(ks_stream* stream)
 {
-    return stream_read_float(stream, 0, value);
+    float temp;
+    CHECK(temp = stream_read_float(stream, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_f4be(ks_stream* stream, float* value)
+float ks_stream_read_f4be(ks_stream* stream)
 {
-    return stream_read_float(stream, 1, value);
+    float temp;
+    CHECK(temp = stream_read_float(stream, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_f8le(ks_stream* stream, double* value)
+double ks_stream_read_f8le(ks_stream* stream)
 {
-    return stream_read_double(stream, 0, value);
+    double temp;
+    CHECK(temp = stream_read_double(stream, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_f8be(ks_stream* stream, double* value)
+double ks_stream_read_f8be(ks_stream* stream)
 {
-    return stream_read_double(stream, 1, value);
+    double temp;
+    CHECK(temp = stream_read_double(stream, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_bits_le(ks_stream* stream, int width, uint64_t* value)
+uint64_t ks_stream_read_bits_le(ks_stream* stream, int width)
 {
-    return stream_read_bits(stream, width, value, 0);
+    uint64_t temp;
+    CHECK(temp = stream_read_bits(stream, width, 0), 0);
+    return temp;
 }
 
-int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value)
+uint64_t ks_stream_read_bits_be(ks_stream* stream, int width)
 {
-    return stream_read_bits(stream, width, value, 1);
+    uint64_t temp;
+    CHECK(temp = stream_read_bits(stream, width, 1), 0);
+    return temp;
 }
 
-int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
+ks_bytes ks_stream_read_bytes(ks_stream* stream, int len)
 {
     ks_bytes ret = {0};
 
-    CHECK2(stream->pos + len > stream->length, "End of stream");
+    CHECK2(stream->pos + len > stream->length, "End of stream", ret);
 
     ret.length = len;
     ret.stream = *stream;
@@ -370,11 +365,10 @@ int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes)
 
     stream->pos += len;
 
-    *bytes = ret;
-    return 0;
+    return ret;
 }
 
-int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error, ks_bytes* bytes)
+ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error)
 {
     ks_bytes ret = {0};
     uint8_t byte;
@@ -382,7 +376,7 @@ int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool inc
     uint64_t len;
     do
     {
-        CHECK(stream_read_bytes(stream, 1, &byte));
+        CHECK(stream_read_bytes(stream, 1, &byte), ret);
     } while(byte != terminator);
 
     len = stream->pos - start + 1;
@@ -399,9 +393,7 @@ int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool inc
     ret.stream = *stream;
     ret.pos = start;
 
-    *bytes = ret;
-
-    return 0;
+    return ret;
 }
 
 ks_bytes ks_bytes_from_data(uint64_t count, ...)
@@ -422,23 +414,25 @@ ks_bytes ks_bytes_from_data(uint64_t count, ...)
     return ret;
 }
 
-int ks_bytes_get_length(const ks_bytes* bytes, uint64_t* length)
+uint64_t ks_bytes_get_length(const ks_bytes* bytes)
 {
-    *length = bytes->length;
-    return 0;
+    return bytes->length;
 }
 
-int ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
+void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
 {
+    const ks_stream *stream = &bytes->stream;
     if (bytes->data_direct)
     {
         memcpy(data, bytes->data_direct, bytes->length);
-        return 0;
     }
-    return stream_read_bytes_nomove(&bytes->stream, bytes->length, data);
+    else
+    {
+        CHECK(stream_read_bytes_nomove(stream, bytes->length, data), VOID);
+    }
 }
 
-int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size)
+ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size)
 {
     ks_handle ret = {0};
 
@@ -448,8 +442,7 @@ int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type typ
     ret.type = type;
     ret.type_size = type_size;
 
-    memcpy(handle, &ret, sizeof(ks_handle));
-    return 0;
+    return ret;
 }
 
 static int64_t array_get_int(ks_handle* handle, void* data)
@@ -727,9 +720,7 @@ ks_array_string ks_array_string_from_data(uint64_t count, ...)
     return ret;
 }
 
-int ks_string_destroy(ks_string s)
+void ks_string_destroy(ks_string s)
 {
     free(s.data);
-    return 0;
 }
-

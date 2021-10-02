@@ -7,11 +7,24 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define CHECK2(expr, err) \
-   if (expr) { printf("%s:%d - %s\n", __FILE__, __LINE__, err); return 1; }
+#define VOID
 
-#define CHECK(expr) \
-   CHECK2(expr, "")
+#define CHECK2(expr, message, DEFAULT) \
+    if (expr) { \
+        *stream->err = 1; \
+        printf("%s:%d - %s\n", __FILE__, __LINE__, message); \
+        return DEFAULT; \
+    }
+
+#define CHECK(expr, DEFAULT) \
+    expr; \
+    if (*stream->err) { \
+        printf("%s:%d\n", __FILE__, __LINE__); \
+        return DEFAULT; \
+    }
+
+#define CHECKV(expr) \
+    CHECK(expr, VOID)
 
 typedef char ks_bool;
 
@@ -48,6 +61,7 @@ typedef struct ks_config_
 
 typedef struct ks_stream_
 {
+    ks_bool* err;
     ks_config config;
     ks_bool KS_DO_NOT_USE(is_file);
     FILE* KS_DO_NOT_USE(file);
@@ -185,50 +199,50 @@ typedef struct ks_array_void_
     void** data;
 } ks_array_void;
 
-int ks_stream_init_from_file(ks_stream* stream, FILE* file, ks_config* config);
-int ks_stream_init_from_memory(ks_stream* stream, uint8_t* data, int len, ks_config* config);
-int ks_stream_init_from_bytes(ks_stream* stream, ks_bytes* bytes);
+ks_stream ks_stream_create_from_file(FILE* file, ks_config* config);
+ks_stream ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
+ks_stream ks_stream_create_from_bytes(ks_bytes* bytes);
 
-int ks_stream_read_u1(ks_stream* stream, uint8_t* value);
-int ks_stream_read_u2le(ks_stream* stream, uint16_t* value);
-int ks_stream_read_u4le(ks_stream* stream, uint32_t* value);
-int ks_stream_read_u8le(ks_stream* stream, uint64_t* value);
-int ks_stream_read_u2be(ks_stream* stream, uint16_t* value);
-int ks_stream_read_u4be(ks_stream* stream, uint32_t* value);
-int ks_stream_read_u8be(ks_stream* stream, uint64_t* value);
+uint8_t ks_stream_read_u1(ks_stream* stream);
+uint16_t ks_stream_read_u2le(ks_stream* stream);
+uint32_t ks_stream_read_u4le(ks_stream* stream);
+uint64_t ks_stream_read_u8le(ks_stream* stream);
+uint16_t ks_stream_read_u2be(ks_stream* stream);
+uint32_t ks_stream_read_u4be(ks_stream* stream);
+uint64_t ks_stream_read_u8be(ks_stream* stream);
 
-int ks_stream_read_s1(ks_stream* stream, int8_t* value);
-int ks_stream_read_s2le(ks_stream* stream, int16_t* value);
-int ks_stream_read_s4le(ks_stream* stream, int32_t* value);
-int ks_stream_read_s8le(ks_stream* stream, int64_t* value);
-int ks_stream_read_s2be(ks_stream* stream, int16_t* value);
-int ks_stream_read_s4be(ks_stream* stream, int32_t* value);
-int ks_stream_read_s8be(ks_stream* stream, int64_t* value);
+int8_t ks_stream_read_s1(ks_stream* stream);
+int16_t ks_stream_read_s2le(ks_stream* stream);
+int32_t ks_stream_read_s4le(ks_stream* stream);
+int64_t ks_stream_read_s8le(ks_stream* stream);
+int16_t ks_stream_read_s2be(ks_stream* stream);
+int32_t ks_stream_read_s4be(ks_stream* stream);
+int64_t ks_stream_read_s8be(ks_stream* stream);
 
-int ks_stream_read_f4le(ks_stream* stream, float* value);
-int ks_stream_read_f4be(ks_stream* stream, float* value);
-int ks_stream_read_f8le(ks_stream* stream, double* value);
-int ks_stream_read_f8be(ks_stream* stream, double* value);
+float ks_stream_read_f4le(ks_stream* stream);
+float ks_stream_read_f4be(ks_stream* stream);
+double ks_stream_read_f8le(ks_stream* stream);
+double ks_stream_read_f8be(ks_stream* stream);
 
-int ks_stream_read_bits_le(ks_stream* stream, int width, uint64_t* value);
-int ks_stream_read_bits_be(ks_stream* stream, int width, uint64_t* value);
-int ks_stream_align_to_byte(ks_stream* stream);
+uint64_t ks_stream_read_bits_le(ks_stream* stream, int width);
+uint64_t ks_stream_read_bits_be(ks_stream* stream, int width);
+void ks_stream_align_to_byte(ks_stream* stream);
 
-int ks_stream_read_bytes(ks_stream* stream, int len, ks_bytes* bytes);
-int ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error, ks_bytes* bytes);
-int ks_bytes_destroy(ks_bytes* bytes);
-int ks_stream_destroy(ks_stream* stream);
+ks_bytes ks_stream_read_bytes(ks_stream* stream, int len);
+ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error);
+void ks_bytes_destroy(ks_bytes* bytes);
+void ks_stream_destroy(ks_stream* stream);
 ks_bool ks_stream_is_eof(ks_stream* stream);
-int ks_stream_seek(ks_stream* stream, uint64_t pos);
+void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes ks_bytes_from_data(uint64_t count, ...);
-int ks_bytes_get_length(const ks_bytes* bytes, uint64_t* length);
-int ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
+uint64_t ks_bytes_get_length(const ks_bytes* bytes);
+void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
 
-int ks_handle_init(ks_handle* handle, ks_stream* stream, void* data, ks_type type, int type_size);
+ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 
 ks_string ks_string_concat(ks_string s1, ks_string s2);
-int ks_string_destroy(ks_string s);
+void ks_string_destroy(ks_string s);
 ks_string ks_string_from_int(int64_t i, int base);
 ks_string ks_string_from_bytes(ks_bytes bytes);
 ks_string ks_string_from_cstr(const char* data);
@@ -288,10 +302,9 @@ inline int ks_inflate(ks_data* data_in, ks_data* data_out)
 }
 #endif
 
-inline int ks_config_init(ks_config* config)
+inline void ks_config_init(ks_config* config)
 {
     config->inflate_func = ks_inflate;
-    return 0;
 }
 
 #endif
