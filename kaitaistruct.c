@@ -758,6 +758,11 @@ ks_array_string ks_array_string_from_data(uint64_t count, ...)
     return ret;
 }
 
+int ks_string_strcmp(ks_string left, ks_string right)
+{
+    return strcmp(left.data, right.data);
+}
+
 void ks_string_destroy(ks_string s)
 {
     free(s.data);
