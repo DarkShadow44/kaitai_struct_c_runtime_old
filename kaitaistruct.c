@@ -432,6 +432,44 @@ void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
     }
 }
 
+ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad)
+{
+    ks_bytes ret = {0};
+    uint8_t* data;
+    uint64_t len = bytes.length;
+
+    data = malloc(len);
+    ks_bytes_get_data(&bytes, data);
+
+    while (len > 0 && data[len - 1] == pad)
+        len--;
+
+    ret.data_direct = data;
+    ret.length = len;
+    return ret;
+}
+
+ks_bytes ks_bytes_terminate(ks_bytes bytes, int term, ks_bool include)
+{
+    ks_bytes ret = {0};
+    uint64_t len = 0;
+    uint8_t* data;
+    uint64_t max_len = bytes.length;
+
+    data = malloc(len);
+    ks_bytes_get_data(&bytes, data);
+
+    while (len < max_len && data[len] != term)
+        len++;
+
+    if (include && len < max_len)
+        len++;
+
+    ret.data_direct = data;
+    ret.length = len;
+    return ret;
+}
+
 ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size)
 {
     ks_handle ret = {0};

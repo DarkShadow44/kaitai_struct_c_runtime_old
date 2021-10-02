@@ -255,6 +255,8 @@ double ks_array_min_float(ks_handle* handle);
 double ks_array_max_float(ks_handle* handle);
 ks_string ks_array_min_string(ks_handle* handle);
 ks_string ks_array_max_string(ks_handle* handle);
+ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad);
+ks_bytes ks_bytes_terminate(ks_bytes bytes, int term, ks_bool include);
 
 /* Dynamic functions */
 
