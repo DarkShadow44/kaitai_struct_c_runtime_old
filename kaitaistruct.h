@@ -265,6 +265,7 @@ ks_string ks_string_substr(ks_string str, int start, int end);
 int64_t ks_bytes_min(ks_bytes bytes);
 int64_t ks_bytes_max(ks_bytes bytes);
 int64_t ks_bytes_get_at(const ks_bytes bytes, uint64_t index);
+int64_t ks_mod(int64_t a, int64_t b);
 
 /* Dynamic functions */
 

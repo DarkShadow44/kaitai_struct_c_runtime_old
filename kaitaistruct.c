@@ -887,3 +887,15 @@ void ks_string_destroy(ks_string s)
 {
     free(s.data);
 }
+
+int64_t ks_mod(int64_t a, int64_t b)
+{
+    int64_t r;
+    if (b <= 0)
+    {
+        return 0;
+    }
+    r = a % b;
+    if (r < 0) r += b;
+    return r;
+}
