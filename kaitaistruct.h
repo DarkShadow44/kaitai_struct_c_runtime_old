@@ -257,7 +257,8 @@ ks_string ks_array_min_string(ks_handle* handle);
 ks_string ks_array_max_string(ks_handle* handle);
 ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad);
 ks_bytes ks_bytes_terminate(ks_bytes bytes, int term, ks_bool include);
-int ks_string_strcmp(ks_string left, ks_string right);
+int ks_string_compare(ks_string left, ks_string right);
+int ks_bytes_compare(ks_bytes left, ks_bytes right);
 
 /* Dynamic functions */
 

@@ -758,9 +758,43 @@ ks_array_string ks_array_string_from_data(uint64_t count, ...)
     return ret;
 }
 
-int ks_string_strcmp(ks_string left, ks_string right)
+int ks_string_compare(ks_string left, ks_string right)
 {
     return strcmp(left.data, right.data);
+}
+
+int ks_bytes_compare(ks_bytes left, ks_bytes right)
+{
+    int ret;
+    uint8_t* data_left;
+    uint8_t* data_right;
+    uint64_t len;
+
+    data_left = malloc(left.length);
+    data_right = malloc(right.length);
+
+    ks_bytes_get_data(&left, data_left);
+    ks_bytes_get_data(&right, data_right);
+
+    len = min(left.length, right.length);
+
+    ret = memcmp(data_left, data_right, len);
+
+    if (ret == 0)
+    {
+        if (left.length < right.length)
+        {
+            ret = -1;
+        }
+        if (right.length > left.length)
+        {
+            ret = 1;
+        }
+    }
+
+    free(data_left);
+    free(data_right);
+    return ret;
 }
 
 void ks_string_destroy(ks_string s)
