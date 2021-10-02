@@ -432,6 +432,26 @@ void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
     }
 }
 
+int64_t ks_bytes_get_at(const ks_bytes bytes, uint64_t index)
+{
+    const ks_stream *stream = &bytes.stream;
+    if (index >= bytes.length)
+    {
+        return 0;
+    }
+
+    if (bytes.data_direct)
+    {
+        return ((uint8_t*)bytes.data_direct)[index];
+    }
+    else
+    {
+        uint8_t data;
+        CHECK(stream_read_bytes_nomove(stream, 1, &data), 0);
+        return data;
+    }
+}
+
 ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad)
 {
     ks_bytes ret = {0};
@@ -544,10 +564,9 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
             case KS_TYPE_ARRAY_FLOAT:
                 return array_get_float(handle, other) > array_get_float(handle, minmax);
             case KS_TYPE_ARRAY_STRING:
-                ks_string* str_minmax = (ks_string*)minmax;
-                ks_string* str_other = (ks_string*)other;
-                int len = min(str_minmax->len, str_other->len);
-                return strncmp(str_other->data, str_minmax->data, len) > 0;
+                return ks_string_compare(*(ks_string*)other, *(ks_string*)minmax) > 0;
+            case KS_TYPE_ARRAY_BYTES:
+                return ks_bytes_compare(*(ks_bytes*)other, *(ks_bytes*)minmax) > 0;
             default:
                 break;
         }
@@ -562,10 +581,9 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
             case KS_TYPE_ARRAY_FLOAT:
                 return array_get_float(handle, other) > array_get_float(handle, minmax);
             case KS_TYPE_ARRAY_STRING:
-                 ks_string* str_minmax = (ks_string*)minmax;
-                ks_string* str_other = (ks_string*)other;
-                int len = min(str_minmax->len, str_other->len);
-                return strncmp(str_other->data, str_minmax->data, len) < 0;
+                return ks_string_compare(*(ks_string*)other, *(ks_string*)minmax) < 0;
+            case KS_TYPE_ARRAY_BYTES:
+                return ks_bytes_compare(*(ks_bytes*)other, *(ks_bytes*)minmax) < 0;
             default:
                 break;
         }
@@ -630,6 +648,64 @@ ks_string ks_array_max_string(ks_handle* handle)
 {
     void* ret = array_min_max(handle, 1);
     return *(ks_string*)ret;
+}
+
+ks_bytes ks_array_min_bytes(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 0);
+    return *(ks_bytes*)ret;
+}
+
+ks_bytes ks_array_max_bytes(ks_handle* handle)
+{
+    void* ret = array_min_max(handle, 1);
+    return *(ks_bytes*)ret;
+}
+
+static int64_t bytes_minmax(ks_bytes bytes, ks_bool max)
+{
+    uint8_t minmax;
+    uint8_t* data;
+
+    if (bytes.length == 0)
+    {
+        return 0;
+    }
+
+    data = malloc(bytes.length);
+    ks_bytes_get_data(&bytes, data);
+    minmax = data[0];
+
+    for (int i = 1; i < bytes.length; i++)
+    {
+        if (max)
+        {
+            if (data[i] > minmax)
+            {
+                minmax = data[i];
+            }
+        }
+        else
+        {
+            if (data[i] < minmax)
+            {
+                minmax = data[i];
+            }
+        }
+    }
+
+    free(data);
+    return minmax;
+}
+
+int64_t ks_bytes_min(ks_bytes bytes)
+{
+    return bytes_minmax(bytes, 0);
+}
+
+int64_t ks_bytes_max(ks_bytes bytes)
+{
+    return bytes_minmax(bytes, 1);
 }
 
 ks_string ks_string_concat(ks_string s1, ks_string s2)

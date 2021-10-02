@@ -97,8 +97,8 @@ typedef struct ks_bytes_
 typedef struct ks_string_
 {
     ks_handle _handle;
-    char* data;
     int64_t len;
+    char* data;
 } ks_string;
 
 typedef struct ks_array_generic_
@@ -255,11 +255,16 @@ double ks_array_min_float(ks_handle* handle);
 double ks_array_max_float(ks_handle* handle);
 ks_string ks_array_min_string(ks_handle* handle);
 ks_string ks_array_max_string(ks_handle* handle);
+ks_bytes ks_array_min_bytes(ks_handle* handle);
+ks_bytes ks_array_max_bytes(ks_handle* handle);
 ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad);
 ks_bytes ks_bytes_terminate(ks_bytes bytes, int term, ks_bool include);
 int ks_string_compare(ks_string left, ks_string right);
 int ks_bytes_compare(ks_bytes left, ks_bytes right);
 ks_string ks_string_substr(ks_string str, int start, int end);
+int64_t ks_bytes_min(ks_bytes bytes);
+int64_t ks_bytes_max(ks_bytes bytes);
+int64_t ks_bytes_get_at(const ks_bytes bytes, uint64_t index);
 
 /* Dynamic functions */
 
