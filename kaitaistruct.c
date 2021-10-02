@@ -749,6 +749,35 @@ ks_string ks_string_from_int(int64_t i, int base)
     return ret;
 }
 
+int64_t ks_string_to_int(ks_string str, int base)
+{
+    long long int i = 0;
+    if (base == 10)
+    {
+        scanf(str.data, "%lld", &i);
+    }
+    else if (base == 16)
+    {
+        scanf(str.data, "%llx", &i);
+    }
+
+    return i;
+}
+
+ks_string ks_string_reverse(ks_string str)
+{
+    ks_string ret = {0};
+    ret._handle.temporary = 1;
+    ret.len = str.len;
+    ret.data = calloc(1, ret.len);
+
+    for (int i = 0; i < str.len; i++)
+    {
+        ret.data[i] = str.data[str.len - i - 1];
+    }
+    return ret;
+}
+
 ks_string ks_string_from_bytes(ks_bytes bytes)
 {
     ks_string ret = {0};
