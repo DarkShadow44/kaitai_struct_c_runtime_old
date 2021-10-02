@@ -695,6 +695,16 @@ ks_string ks_string_from_cstr(const char* data)
     return ret;
 }
 
+ks_string ks_string_substr(ks_string str, int start, int end)
+{
+    ks_string ret = {0};
+    ret._handle.temporary = 1;
+    ret.len = end - start + 1;
+    ret.data = calloc(1, ret.len + 1);
+    memcpy(ret.data, ret.data + start, ret.len);
+    return ret;
+}
+
 ks_array_int64_t ks_array_int64_t_from_data(uint64_t count, ...)
 {
     ks_array_int64_t ret = {0};
