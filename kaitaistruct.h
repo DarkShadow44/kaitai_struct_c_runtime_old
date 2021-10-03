@@ -271,11 +271,12 @@ int64_t ks_bytes_max(ks_bytes bytes);
 int64_t ks_bytes_get_at(const ks_bytes bytes, uint64_t index);
 int64_t ks_mod(int64_t a, int64_t b);
 
+
 /* Dynamic functions */
 
 #ifdef KS_USE_ZLIB
 #include <zlib.h>
-inline int ks_inflate(ks_data* data_in, ks_data* data_out)
+static int ks_inflate(ks_data* data_in, ks_data* data_out)
 {
     z_stream strm = {0};
     uint8_t outbuffer[1024*64];
@@ -311,13 +312,13 @@ inline int ks_inflate(ks_data* data_in, ks_data* data_out)
     return 0;
 }
 #else
-inline int ks_inflate(ks_data* data_in, ks_data* data_out)
+static int ks_inflate(ks_data* data_in, ks_data* data_out)
 {
     return 1;
 }
 #endif
 
-inline void ks_config_init(ks_config* config)
+static void ks_config_init(ks_config* config)
 {
     config->inflate_func = ks_inflate;
 }

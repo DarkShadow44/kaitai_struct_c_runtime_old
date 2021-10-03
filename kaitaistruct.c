@@ -107,6 +107,7 @@ static int64_t stream_read_int(ks_stream* stream, int len, ks_bool big_endian)
 {
     uint8_t bytes[8];
     int64_t ret = 0;
+    int i;
 
     CHECK(stream_read_bytes(stream, len, bytes), 0);
 
@@ -115,7 +116,7 @@ static int64_t stream_read_int(ks_stream* stream, int len, ks_bool big_endian)
         reverse_uint8_t(bytes, len);
     }
 
-    for (int i = 0; i < len; i++)
+    for (i = 0; i < len; i++)
     {
         ret += (int64_t)bytes[i] << (i*8);
     }
@@ -272,8 +273,9 @@ void ks_stream_align_to_byte(ks_stream* stream)
 
 static uint64_t stream_read_bits(ks_stream* stream, int n, ks_bool big_endian)
 {
+    int i;
     uint64_t value;
-    uint64_t mask = get_mask_ones(n); // raw mask with required number of 1s, starting from lowest bit
+    uint64_t mask = get_mask_ones(n); /* raw mask with required number of 1s, starting from lowest bit */
     int bits_needed = n - stream->bits_left;
     if (bits_needed > 0)
     {
@@ -281,7 +283,7 @@ static uint64_t stream_read_bits(ks_stream* stream, int n, ks_bool big_endian)
         int bytes_needed = ((bits_needed - 1) / 8) + 1;
         CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
         CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
-        for (int i = 0; i < bytes_needed; i++)
+        for (i = 0; i < bytes_needed; i++)
         {
             uint8_t b = buf[i];
             if (big_endian)
@@ -299,22 +301,22 @@ static uint64_t stream_read_bits(ks_stream* stream, int n, ks_bool big_endian)
 
     if (big_endian)
     {
-        // shift mask to align with highest bits available in @bits
+        /* shift mask to align with highest bits available in @bits */
         int shift_bits = stream->bits_left - n;
         mask <<= shift_bits;
 
-        // derive reading result
+        /* derive reading result */
         value = (stream->bits & mask) >> shift_bits;
-        // clear top bits that we've just read => AND with 1s
+        /* clear top bits that we've just read => AND with 1s */
         stream->bits_left -= n;
         mask = get_mask_ones(stream->bits_left);
         stream->bits &= mask;
     }
     else
     {
-        // derive reading result
+        /* derive reading result */
         value = stream->bits & mask;
-        // remove bottom bits that we've just read by shifting
+        /* remove bottom bits that we've just read by shifting */
         stream->bits >>= n;
         stream->bits_left -= n;
     }
@@ -410,12 +412,13 @@ ks_bytes ks_bytes_from_data(uint64_t count, ...)
 {
     ks_bytes ret = {0};
     va_list list;
+    int i;
 
     ret.length = count;
     ret.data_direct = calloc(1, count);
     va_start(list, count);
 
-    for (int i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
         ret.data_direct[i] = va_arg(list, int);
     }
@@ -605,6 +608,8 @@ static void* array_min_max(ks_handle* handle, ks_bool max)
 {
     char* pointer;
     ks_array_generic array;
+    int i;
+
     memcpy(&array, handle->data, sizeof(ks_array_generic)); /* Type punning */
 
     if (array.size == 0)
@@ -613,7 +618,7 @@ static void* array_min_max(ks_handle* handle, ks_bool max)
     }
 
     pointer = array.data;
-    for (int i = 1; i < array.size; i++)
+    for (i = 1; i < array.size; i++)
     {
         char* data_new = handle->data + (i * handle->type_size);
         if (array_min_max_func(handle, max, pointer, data_new))
@@ -676,6 +681,7 @@ static int64_t bytes_minmax(ks_bytes bytes, ks_bool max)
 {
     uint8_t minmax;
     uint8_t* data;
+    int i;
 
     if (bytes.length == 0)
     {
@@ -686,7 +692,7 @@ static int64_t bytes_minmax(ks_bytes bytes, ks_bool max)
     ks_bytes_get_data(&bytes, data);
     minmax = data[0];
 
-    for (int i = 1; i < bytes.length; i++)
+    for (i = 1; i < bytes.length; i++)
     {
         if (max)
         {
@@ -776,12 +782,13 @@ int64_t ks_string_to_int(ks_string str, int base)
 
 ks_string ks_string_reverse(ks_string str)
 {
+    int i;
     ks_string ret = {0};
     ret._handle.temporary = 1;
     ret.len = str.len;
     ret.data = calloc(1, ret.len);
 
-    for (int i = 0; i < str.len; i++)
+    for (i = 0; i < str.len; i++)
     {
         ret.data[i] = str.data[str.len - i - 1];
     }
@@ -791,10 +798,12 @@ ks_string ks_string_reverse(ks_string str)
 ks_string ks_string_from_bytes(ks_bytes bytes)
 {
     ks_string ret = {0};
+    const ks_stream* stream = &bytes.stream;
+
     ret._handle.temporary = 1;
     ret.len = bytes.length;
     ret.data = calloc(1, ret.len + 1);
-    ks_bytes_get_data(&bytes, (void*)ret.data); // Can't check return here...?
+    CHECK(ks_bytes_get_data(&bytes, (void*)ret.data), ret);
 
     return ret;
 }
@@ -824,6 +833,7 @@ ks_array_int64_t ks_array_int64_t_from_data(uint64_t count, ...)
 {
     ks_array_int64_t ret = {0};
     va_list list;
+    int i;
 
     ret._handle.type = KS_TYPE_ARRAY_INT;
     ret._handle.type_size = 8;
@@ -832,7 +842,7 @@ ks_array_int64_t ks_array_int64_t_from_data(uint64_t count, ...)
     ret.data = calloc(ret._handle.type_size, count);
     va_start(list, count);
 
-    for (int i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
         ret.data[i] = va_arg(list, int64_t);
     }
@@ -845,6 +855,7 @@ ks_array_double ks_array_double_from_data(uint64_t count, ...)
 {
     ks_array_double ret = {0};
     va_list list;
+    int i;
 
     ret._handle.type = KS_TYPE_ARRAY_FLOAT;
     ret._handle.type_size = 8;
@@ -853,7 +864,7 @@ ks_array_double ks_array_double_from_data(uint64_t count, ...)
     ret.data = calloc(ret._handle.type_size, count);
     va_start(list, count);
 
-    for (int i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
         ret.data[i] = va_arg(list, double);
     }
@@ -866,6 +877,7 @@ ks_array_string ks_array_string_from_data(uint64_t count, ...)
 {
     ks_array_string ret = {0};
     va_list list;
+    int i;
 
     ret._handle.type = KS_TYPE_ARRAY_STRING;
     ret._handle.type_size = sizeof(ks_string);
@@ -874,7 +886,7 @@ ks_array_string ks_array_string_from_data(uint64_t count, ...)
     ret.data = calloc(ret._handle.type_size, count);
     va_start(list, count);
 
-    for (int i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
         ret.data[i] = va_arg(list, ks_string);
     }
