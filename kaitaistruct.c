@@ -408,6 +408,19 @@ ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_boo
     return ret;
 }
 
+ks_bytes ks_stream_read_bytes_full(ks_stream* stream)
+{
+    ks_bytes ret = {0};
+
+    ret.length = stream->length - stream->pos;
+    ret.stream = stream;
+    ret.pos = stream->pos;
+
+    stream->pos = stream->length;
+
+    return ret;
+}
+
 ks_bytes ks_bytes_from_data(uint64_t count, ...)
 {
     ks_bytes ret = {0};

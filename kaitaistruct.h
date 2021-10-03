@@ -230,6 +230,7 @@ void ks_stream_align_to_byte(ks_stream* stream);
 
 ks_bytes ks_stream_read_bytes(ks_stream* stream, int len);
 ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error);
+ks_bytes ks_stream_read_bytes_full(ks_stream* stream);
 void ks_bytes_destroy(ks_bytes bytes);
 void ks_stream_destroy(ks_stream* stream);
 ks_bool ks_stream_is_eof(ks_stream* stream);
