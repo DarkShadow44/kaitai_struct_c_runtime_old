@@ -88,6 +88,7 @@ typedef struct ks_handle_
 
 typedef struct ks_bytes_
 {
+    ks_handle _handle;
     ks_stream* KS_DO_NOT_USE(stream);
     uint64_t KS_DO_NOT_USE(pos);
     uint64_t KS_DO_NOT_USE(length);
@@ -182,14 +183,14 @@ typedef struct ks_array_string_
 {
     ks_handle _handle;
     int64_t size;
-    ks_string* data;
+    ks_string** data;
 } ks_array_string;
 
 typedef struct ks_array_bytes_
 {
     ks_handle _handle;
     int64_t size;
-    ks_bytes* data;
+    ks_bytes** data;
 } ks_array_bytes;
 
 typedef struct ks_array_void_
@@ -201,7 +202,7 @@ typedef struct ks_array_void_
 
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
-ks_stream* ks_stream_create_from_bytes(ks_bytes bytes);
+ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes);
 
 uint8_t ks_stream_read_u1(ks_stream* stream);
 uint16_t ks_stream_read_u2le(ks_stream* stream);
@@ -228,29 +229,29 @@ uint64_t ks_stream_read_bits_le(ks_stream* stream, int width);
 uint64_t ks_stream_read_bits_be(ks_stream* stream, int width);
 void ks_stream_align_to_byte(ks_stream* stream);
 
-ks_bytes ks_stream_read_bytes(ks_stream* stream, int len);
-ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error);
-ks_bytes ks_stream_read_bytes_full(ks_stream* stream);
-void ks_bytes_destroy(ks_bytes bytes);
+ks_bytes* ks_stream_read_bytes(ks_stream* stream, int len);
+ks_bytes* ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error);
+ks_bytes* ks_stream_read_bytes_full(ks_stream* stream);
+void ks_bytes_destroy(ks_bytes* bytes);
 void ks_stream_destroy(ks_stream* stream);
 ks_bool ks_stream_is_eof(ks_stream* stream);
 uint64_t ks_stream_get_pos(ks_stream* stream);
 uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
-ks_bytes ks_bytes_from_data(uint64_t count, ...);
-uint64_t ks_bytes_get_length(const ks_bytes bytes);
-void ks_bytes_get_data(const ks_bytes bytes, uint8_t* data);
+ks_bytes* ks_bytes_from_data(uint64_t count, ...);
+uint64_t ks_bytes_get_length(const ks_bytes* bytes);
+void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
 
 ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 
-ks_string ks_string_concat(ks_string s1, ks_string s2);
-void ks_string_destroy(ks_string s);
-ks_string ks_string_from_int(int64_t i, int base);
-int64_t ks_string_to_int(ks_string str, int base);
-ks_string ks_string_from_bytes(ks_bytes bytes);
-ks_string ks_string_from_cstr(const char* data);
-ks_string ks_string_reverse(ks_string str);
+ks_string* ks_string_concat(ks_string* s1, ks_string* s2);
+void ks_string_destroy(ks_string* s);
+ks_string* ks_string_from_int(int64_t i, int base);
+int64_t ks_string_to_int(ks_string* str, int base);
+ks_string* ks_string_from_bytes(ks_bytes* bytes);
+ks_string* ks_string_from_cstr(const char* data);
+ks_string* ks_string_reverse(ks_string* str);
 ks_array_int64_t ks_array_int64_t_from_data(uint64_t count, ...);
 ks_array_double ks_array_double_from_data(uint64_t count, ...);
 ks_array_string ks_array_string_from_data(uint64_t count, ...);
@@ -258,18 +259,18 @@ int64_t ks_array_min_int(ks_handle* handle);
 int64_t ks_array_max_int(ks_handle* handle);
 double ks_array_min_float(ks_handle* handle);
 double ks_array_max_float(ks_handle* handle);
-ks_string ks_array_min_string(ks_handle* handle);
-ks_string ks_array_max_string(ks_handle* handle);
-ks_bytes ks_array_min_bytes(ks_handle* handle);
-ks_bytes ks_array_max_bytes(ks_handle* handle);
-ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad);
-ks_bytes ks_bytes_terminate(ks_bytes bytes, int term, ks_bool include);
-int ks_string_compare(ks_string left, ks_string right);
-int ks_bytes_compare(ks_bytes left, ks_bytes right);
-ks_string ks_string_substr(ks_string str, int start, int end);
-int64_t ks_bytes_min(ks_bytes bytes);
-int64_t ks_bytes_max(ks_bytes bytes);
-int64_t ks_bytes_get_at(const ks_bytes bytes, uint64_t index);
+ks_string* ks_array_min_string(ks_handle* handle);
+ks_string* ks_array_max_string(ks_handle* handle);
+ks_bytes* ks_array_min_bytes(ks_handle* handle);
+ks_bytes* ks_array_max_bytes(ks_handle* handle);
+ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad);
+ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include);
+int ks_string_compare(ks_string* left, ks_string* right);
+int ks_bytes_compare(ks_bytes* left, ks_bytes* right);
+ks_string* ks_string_substr(ks_string* str, int start, int end);
+int64_t ks_bytes_min(ks_bytes* bytes);
+int64_t ks_bytes_max(ks_bytes* bytes);
+int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 int64_t ks_mod(int64_t a, int64_t b);
 
 
