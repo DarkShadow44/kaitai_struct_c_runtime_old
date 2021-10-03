@@ -784,11 +784,11 @@ int64_t ks_string_to_int(ks_string* str, int base)
     long long int i = 0;
     if (base == 10)
     {
-        scanf(str->data, "%lld", &i);
+        sscanf(str->data, "%lld", &i);
     }
     else if (base == 16)
     {
-        scanf(str->data, "%llx", &i);
+        sscanf(str->data, "%llx", &i);
     }
 
     return i;
