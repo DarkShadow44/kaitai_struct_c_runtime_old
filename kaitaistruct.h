@@ -233,6 +233,8 @@ ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_boo
 void ks_bytes_destroy(ks_bytes* bytes);
 void ks_stream_destroy(ks_stream* stream);
 ks_bool ks_stream_is_eof(ks_stream* stream);
+uint64_t ks_stream_get_pos(ks_stream* stream);
+uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes ks_bytes_from_data(uint64_t count, ...);

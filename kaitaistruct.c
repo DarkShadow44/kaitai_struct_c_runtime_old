@@ -65,6 +65,16 @@ ks_bool ks_stream_is_eof(ks_stream* stream)
     return stream->pos == stream->length;
 }
 
+uint64_t ks_stream_get_pos(ks_stream* stream)
+{
+    return stream->pos;
+}
+
+uint64_t ks_stream_get_length(ks_stream* stream)
+{
+    return stream->length;
+}
+
 void ks_stream_seek(ks_stream* stream, uint64_t pos)
 {
     CHECK2(pos > stream->length, "End of stream", VOID);
