@@ -201,7 +201,7 @@ typedef struct ks_array_void_
 
 ks_stream ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
-ks_stream ks_stream_create_from_bytes(ks_bytes* bytes);
+ks_stream ks_stream_create_from_bytes(ks_bytes bytes);
 
 uint8_t ks_stream_read_u1(ks_stream* stream);
 uint16_t ks_stream_read_u2le(ks_stream* stream);
@@ -230,7 +230,7 @@ void ks_stream_align_to_byte(ks_stream* stream);
 
 ks_bytes ks_stream_read_bytes(ks_stream* stream, int len);
 ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error);
-void ks_bytes_destroy(ks_bytes* bytes);
+void ks_bytes_destroy(ks_bytes bytes);
 void ks_stream_destroy(ks_stream* stream);
 ks_bool ks_stream_is_eof(ks_stream* stream);
 uint64_t ks_stream_get_pos(ks_stream* stream);
@@ -238,8 +238,8 @@ uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes ks_bytes_from_data(uint64_t count, ...);
-uint64_t ks_bytes_get_length(const ks_bytes* bytes);
-void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
+uint64_t ks_bytes_get_length(const ks_bytes bytes);
+void ks_bytes_get_data(const ks_bytes bytes, uint8_t* data);
 
 ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 

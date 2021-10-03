@@ -32,17 +32,17 @@ ks_stream ks_stream_create_from_file(FILE* file, ks_config* config)
     return ret;
 }
 
-ks_stream ks_stream_create_from_bytes(ks_bytes* bytes)
+ks_stream ks_stream_create_from_bytes(ks_bytes bytes)
 {
     ks_stream ret = {0};
 
-    ret.config = bytes->stream.config;
-    ret.is_file = bytes->stream.is_file;
-    ret.file = bytes->stream.file;
-    ret.data = bytes->stream.data;
-    ret.start = bytes->pos;
-    ret.length = bytes->length;
-    ret.err = bytes->stream.err;
+    ret.config = bytes.stream.config;
+    ret.is_file = bytes.stream.is_file;
+    ret.file = bytes.stream.file;
+    ret.data = bytes.stream.data;
+    ret.start = bytes.pos;
+    ret.length = bytes.length;
+    ret.err = bytes.stream.err;
 
     return ret;
 }
@@ -427,21 +427,21 @@ ks_bytes ks_bytes_from_data(uint64_t count, ...)
     return ret;
 }
 
-uint64_t ks_bytes_get_length(const ks_bytes* bytes)
+uint64_t ks_bytes_get_length(const ks_bytes bytes)
 {
-    return bytes->length;
+    return bytes.length;
 }
 
-void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
+void ks_bytes_get_data(const ks_bytes bytes, uint8_t* data)
 {
-    const ks_stream *stream = &bytes->stream;
-    if (bytes->data_direct)
+    const ks_stream *stream = &bytes.stream;
+    if (bytes.data_direct)
     {
-        memcpy(data, bytes->data_direct, bytes->length);
+        memcpy(data, bytes.data_direct, bytes.length);
     }
     else
     {
-        CHECK(stream_read_bytes_nomove(stream, bytes->length, data), VOID);
+        CHECK(stream_read_bytes_nomove(stream, bytes.length, data), VOID);
     }
 }
 
@@ -472,7 +472,7 @@ ks_bytes ks_bytes_strip_right(ks_bytes bytes, int pad)
     uint64_t len = bytes.length;
 
     data = malloc(len);
-    ks_bytes_get_data(&bytes, data);
+    ks_bytes_get_data(bytes, data);
 
     while (len > 0 && data[len - 1] == pad)
         len--;
@@ -490,7 +490,7 @@ ks_bytes ks_bytes_terminate(ks_bytes bytes, int term, ks_bool include)
     uint64_t max_len = bytes.length;
 
     data = malloc(len);
-    ks_bytes_get_data(&bytes, data);
+    ks_bytes_get_data(bytes, data);
 
     while (len < max_len && data[len] != term)
         len++;
@@ -689,7 +689,7 @@ static int64_t bytes_minmax(ks_bytes bytes, ks_bool max)
     }
 
     data = malloc(bytes.length);
-    ks_bytes_get_data(&bytes, data);
+    ks_bytes_get_data(bytes, data);
     minmax = data[0];
 
     for (i = 1; i < bytes.length; i++)
@@ -803,7 +803,7 @@ ks_string ks_string_from_bytes(ks_bytes bytes)
     ret._handle.temporary = 1;
     ret.len = bytes.length;
     ret.data = calloc(1, ret.len + 1);
-    CHECK(ks_bytes_get_data(&bytes, (void*)ret.data), ret);
+    CHECK(ks_bytes_get_data(bytes, (void*)ret.data), ret);
 
     return ret;
 }
@@ -910,8 +910,8 @@ int ks_bytes_compare(ks_bytes left, ks_bytes right)
     data_left = malloc(left.length);
     data_right = malloc(right.length);
 
-    ks_bytes_get_data(&left, data_left);
-    ks_bytes_get_data(&right, data_right);
+    ks_bytes_get_data(left, data_left);
+    ks_bytes_get_data(right, data_right);
 
     len = min(left.length, right.length);
 
