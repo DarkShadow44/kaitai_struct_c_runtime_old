@@ -75,7 +75,7 @@ typedef struct ks_stream_
 
 typedef struct ks_handle_
 {
-    ks_stream KS_DO_NOT_USE(stream);
+    ks_stream* KS_DO_NOT_USE(stream);
     /* Might need to add parent/rootdata pointer as well... */
     int KS_DO_NOT_USE(pos);
     void* KS_DO_NOT_USE(data);
@@ -88,7 +88,7 @@ typedef struct ks_handle_
 
 typedef struct ks_bytes_
 {
-    ks_stream KS_DO_NOT_USE(stream);
+    ks_stream* KS_DO_NOT_USE(stream);
     uint64_t KS_DO_NOT_USE(pos);
     uint64_t KS_DO_NOT_USE(length);
     uint8_t* KS_DO_NOT_USE(data_direct);
@@ -199,9 +199,9 @@ typedef struct ks_array_void_
     void** data;
 } ks_array_void;
 
-ks_stream ks_stream_create_from_file(FILE* file, ks_config* config);
-ks_stream ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
-ks_stream ks_stream_create_from_bytes(ks_bytes bytes);
+ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
+ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
+ks_stream* ks_stream_create_from_bytes(ks_bytes bytes);
 
 uint8_t ks_stream_read_u1(ks_stream* stream);
 uint16_t ks_stream_read_u2le(ks_stream* stream);

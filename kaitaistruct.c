@@ -18,44 +18,44 @@
 
 REVERSE_FUNC(uint8_t);
 
-ks_stream ks_stream_create_from_file(FILE* file, ks_config* config)
+ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config)
 {
-    ks_stream ret = {0};
+    ks_stream* ret = calloc(1, sizeof(ks_stream));
 
-    ret.config = *config;
-    ret.is_file = 1;
-    ret.file = file;
-    ret.err = calloc(1, sizeof(ks_bool));
+    ret->config = *config;
+    ret->is_file = 1;
+    ret->file = file;
+    ret->err = calloc(1, sizeof(ks_bool));
 
     fseek(file, 0, SEEK_END);
-    ret.length = ftell(file);
+    ret->length = ftell(file);
     return ret;
 }
 
-ks_stream ks_stream_create_from_bytes(ks_bytes bytes)
+ks_stream* ks_stream_create_from_bytes(ks_bytes bytes)
 {
-    ks_stream ret = {0};
+    ks_stream* ret = calloc(1, sizeof(ks_stream));
 
-    ret.config = bytes.stream.config;
-    ret.is_file = bytes.stream.is_file;
-    ret.file = bytes.stream.file;
-    ret.data = bytes.stream.data;
-    ret.start = bytes.pos;
-    ret.length = bytes.length;
-    ret.err = bytes.stream.err;
+    ret->config = bytes.stream->config;
+    ret->is_file = bytes.stream->is_file;
+    ret->file = bytes.stream->file;
+    ret->data = bytes.stream->data;
+    ret->start = bytes.pos;
+    ret->length = bytes.length;
+    ret->err = bytes.stream->err;
 
     return ret;
 }
 
-ks_stream ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config)
+ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config)
 {
-    ks_stream ret = {0};
+    ks_stream* ret = calloc(1, sizeof(ks_stream));
 
-    ret.config = *config;
-    ret.is_file = 1;
-    ret.data = data;
-    ret.length = len;
-    ret.err = calloc(1, sizeof(ks_bool));
+    ret->config = *config;
+    ret->is_file = 1;
+    ret->data = data;
+    ret->length = len;
+    ret->err = calloc(1, sizeof(ks_bool));
 
     return ret;
 }
@@ -372,7 +372,7 @@ ks_bytes ks_stream_read_bytes(ks_stream* stream, int len)
     CHECK2(stream->pos + len > stream->length, "End of stream", ret);
 
     ret.length = len;
-    ret.stream = *stream;
+    ret.stream = stream;
     ret.pos = stream->pos;
 
     stream->pos += len;
@@ -402,7 +402,7 @@ ks_bytes ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_boo
     }
 
     ret.length = len;
-    ret.stream = *stream;
+    ret.stream = stream;
     ret.pos = start;
 
     return ret;
@@ -434,7 +434,7 @@ uint64_t ks_bytes_get_length(const ks_bytes bytes)
 
 void ks_bytes_get_data(const ks_bytes bytes, uint8_t* data)
 {
-    const ks_stream *stream = &bytes.stream;
+    const ks_stream *stream = bytes.stream;
     if (bytes.data_direct)
     {
         memcpy(data, bytes.data_direct, bytes.length);
@@ -447,7 +447,7 @@ void ks_bytes_get_data(const ks_bytes bytes, uint8_t* data)
 
 int64_t ks_bytes_get_at(const ks_bytes bytes, uint64_t index)
 {
-    const ks_stream *stream = &bytes.stream;
+    const ks_stream *stream = bytes.stream;
     if (index >= bytes.length)
     {
         return 0;
@@ -507,7 +507,7 @@ ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type
 {
     ks_handle ret = {0};
 
-    ret.stream = *stream;
+    ret.stream = stream;
     ret.pos = stream->pos;
     ret.data = data;
     ret.type = type;
@@ -798,7 +798,7 @@ ks_string ks_string_reverse(ks_string str)
 ks_string ks_string_from_bytes(ks_bytes bytes)
 {
     ks_string ret = {0};
-    const ks_stream* stream = &bytes.stream;
+    const ks_stream* stream = bytes.stream;
 
     ret._handle.temporary = 1;
     ret.len = bytes.length;
@@ -937,6 +937,11 @@ int ks_bytes_compare(ks_bytes left, ks_bytes right)
 void ks_string_destroy(ks_string s)
 {
     free(s.data);
+}
+
+void ks_stream_destroy(ks_stream* stream)
+{
+    free(stream);
 }
 
 int64_t ks_mod(int64_t a, int64_t b)
