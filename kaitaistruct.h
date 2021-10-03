@@ -102,6 +102,12 @@ typedef struct ks_string_
     char* data;
 } ks_string;
 
+typedef struct ks_usertype_generic_
+{
+    ks_handle _handle;
+    void* _parent;
+} ks_usertype_generic;
+
 typedef struct ks_array_generic_
 {
     ks_handle _handle;
