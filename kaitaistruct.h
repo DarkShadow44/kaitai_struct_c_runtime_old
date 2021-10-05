@@ -206,6 +206,13 @@ typedef struct ks_array_void_
     void** data;
 } ks_array_void;
 
+typedef struct ks_array_usertype_generic_
+{
+    ks_handle _handle;
+    int64_t size;
+    ks_usertype_generic* data;
+} ks_array_usertype_generic;
+
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
 ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes);
