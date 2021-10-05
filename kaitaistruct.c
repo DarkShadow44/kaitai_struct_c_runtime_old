@@ -940,3 +940,19 @@ int64_t ks_mod(int64_t a, int64_t b)
     if (r < 0) r += b;
     return r;
 }
+
+ks_bytes* ks_bytes_process_xor(ks_bytes* bytes, int xor)
+{
+    uint64_t i;
+    ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+    ret->_handle.temporary = 1;
+    ret->length = bytes->length;
+    ret->data_direct = calloc(1, bytes->length);
+
+    ks_bytes_get_data(bytes, ret->data_direct);
+    for (i = 0; i < ret->length; i++)
+    {
+        ret->data_direct[i] ^= xor;
+    }
+    return ret;
+}
