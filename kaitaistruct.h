@@ -210,7 +210,7 @@ typedef struct ks_array_usertype_generic_
 {
     ks_handle _handle;
     int64_t size;
-    ks_usertype_generic* data;
+    ks_usertype_generic** data;
 } ks_array_usertype_generic;
 
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
@@ -265,9 +265,10 @@ int64_t ks_string_to_int(ks_string* str, int base);
 ks_string* ks_string_from_bytes(ks_bytes* bytes);
 ks_string* ks_string_from_cstr(const char* data);
 ks_string* ks_string_reverse(ks_string* str);
-ks_array_int64_t ks_array_int64_t_from_data(uint64_t count, ...);
-ks_array_double ks_array_double_from_data(uint64_t count, ...);
-ks_array_string ks_array_string_from_data(uint64_t count, ...);
+ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...);
+ks_array_double* ks_array_double_from_data(uint64_t count, ...);
+ks_array_string* ks_array_string_from_data(uint64_t count, ...);
+ks_array_usertype_generic* ks_array_usertype_generic_from_data(uint64_t count, ...);
 int64_t ks_array_min_int(ks_handle* handle);
 int64_t ks_array_max_int(ks_handle* handle);
 double ks_array_min_float(ks_handle* handle);
