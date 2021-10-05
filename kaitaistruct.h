@@ -95,6 +95,12 @@ typedef struct ks_bytes_
     uint8_t* KS_DO_NOT_USE(data_direct);
 } ks_bytes;
 
+typedef struct ks_custom_decoder_
+{
+    void* userdata;
+    ks_bytes* (*decode)(void* userdata, ks_bytes* data);
+} ks_custom_decoder;
+
 typedef struct ks_string_
 {
     ks_handle _handle;
@@ -253,8 +259,9 @@ uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes* ks_bytes_from_data(uint64_t count, ...);
+ks_bytes* ks_bytes_create(void* data, uint64_t length);
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
-void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data);
+void ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
 ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 

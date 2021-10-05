@@ -97,7 +97,7 @@ static void stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* 
     }
 }
 
-static void stream_read_bytes(ks_stream* stream, int len, uint8_t* bytes)
+static void stream_read_bytes(ks_stream* stream, int len, void* bytes)
 {
     CHECK(stream_read_bytes_nomove(stream, len, bytes), VOID);
     stream->pos += len;
@@ -440,12 +440,20 @@ ks_bytes* ks_bytes_from_data(uint64_t count, ...)
     return ret;
 }
 
+ks_bytes* ks_bytes_create(void* data, uint64_t length)
+{
+    ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+    ret->length = length;
+    ret->data_direct = data;
+    return ret;
+}
+
 uint64_t ks_bytes_get_length(const ks_bytes* bytes)
 {
     return bytes->length;
 }
 
-void ks_bytes_get_data(const ks_bytes* bytes, uint8_t* data)
+void ks_bytes_get_data(const ks_bytes* bytes, void* data)
 {
     const ks_stream *stream = bytes->stream;
     if (bytes->data_direct)
@@ -817,7 +825,7 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes)
     ret->_handle.temporary = 1;
     ret->len = bytes->length;
     ret->data = calloc(1, ret->len + 1);
-    CHECK(ks_bytes_get_data(bytes, (void*)ret->data), ret);
+    CHECK(ks_bytes_get_data(bytes, ret->data), ret);
 
     return ret;
 }
