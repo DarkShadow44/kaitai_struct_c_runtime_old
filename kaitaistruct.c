@@ -87,25 +87,25 @@ void ks_stream_seek(ks_stream* stream, uint64_t pos)
     stream->pos = pos;
 }
 
-static void stream_read_bytes_nomove(const ks_stream* stream, uint64_t len, uint8_t* bytes)
+static void stream_read_bytes_nomove(const ks_stream* stream, uint64_t pos, uint64_t len, uint8_t* bytes)
 {
-    CHECK2(stream->pos + len > stream->length, "End of stream", VOID);
+    CHECK2(pos + len > stream->length, "End of stream", VOID);
     if (stream->is_file)
     {
-        int success = fseek(stream->file, stream->start + stream->pos, SEEK_SET);
+        int success = fseek(stream->file, stream->start + pos, SEEK_SET);
         size_t read = fread(bytes, 1, len, stream->file);
         CHECK2(success != 0, "Failed to seek", VOID);
         CHECK2(len != read, "Failed to read", VOID);
     }
     else
     {
-        memcpy(bytes, stream->data + stream->start + stream->pos, len);
+        memcpy(bytes, stream->data + stream->start + pos, len);
     }
 }
 
 static void stream_read_bytes(ks_stream* stream, uint64_t len, void* bytes)
 {
-    CHECK(stream_read_bytes_nomove(stream, len, bytes), VOID);
+    CHECK(stream_read_bytes_nomove(stream, stream->pos, len, bytes), VOID);
     stream->pos += len;
 }
 
@@ -468,7 +468,7 @@ int ks_bytes_get_data(const ks_bytes* bytes, void* data)
     }
     else
     {
-        stream_read_bytes_nomove(stream, bytes->length, data);
+        stream_read_bytes_nomove(stream, bytes->pos, bytes->length, data);
     }
     return bytes->stream ? *bytes->stream->err : 0;
 }
@@ -488,7 +488,7 @@ int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index)
     else
     {
         uint8_t data;
-        CHECK(stream_read_bytes_nomove(stream, 1, &data), 0);
+        CHECK(stream_read_bytes_nomove(stream, bytes->pos + index, 1, &data), 0);
         return data;
     }
 }
