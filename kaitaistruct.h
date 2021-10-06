@@ -205,12 +205,12 @@ typedef struct ks_array_bytes_
     ks_bytes** data;
 } ks_array_bytes;
 
-typedef struct ks_array_void_
+typedef struct ks_array_any_
 {
     ks_handle _handle;
     int64_t size;
     void** data;
-} ks_array_void;
+} ks_array_any;
 
 typedef struct ks_array_usertype_generic_
 {
