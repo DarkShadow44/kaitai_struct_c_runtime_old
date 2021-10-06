@@ -1006,7 +1006,7 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
     for (i = 0; i < ret->length; i++)
     {
         uint64_t b = ret->data_direct[i];
-        ret->data_direct[i] = (b << amount) | (b >> (8 - amount))
+        ret->data_direct[i] = (b << count) | (b >> (8 - count));
     }
     return ret;
 }
