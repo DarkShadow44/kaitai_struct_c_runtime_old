@@ -289,8 +289,8 @@ int64_t ks_bytes_min(ks_bytes* bytes);
 int64_t ks_bytes_max(ks_bytes* bytes);
 int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 int64_t ks_mod(int64_t a, int64_t b);
-ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor, int count_xor_bytes);
-ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor);
+ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_xor_bytes);
+ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes);
 ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
 void ks_bytes_set_error(ks_bytes* bytes, int err);
 
@@ -305,12 +305,11 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
     uint8_t* data_in = 0;
     uint8_t* data_out = 0;
     uint64_t length_out = 0;
-    stream* stream = bytes->stream;
     z_stream strm = {0};
     uint8_t outbuffer[1024*64];
     int ret;
 
-    data_in = malloc(length_in);
+    data_in = (uint8_t*)malloc(length_in);
     ret = ks_bytes_get_data(bytes, data_in);
     if (ret != 0)
     {
