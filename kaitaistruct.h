@@ -295,6 +295,7 @@ int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 int64_t ks_mod(int64_t a, int64_t b);
 ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor, int count_xor_bytes);
 ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor);
+ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
 
 
 /* Dynamic functions */

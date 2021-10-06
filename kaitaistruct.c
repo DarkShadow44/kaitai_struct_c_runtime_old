@@ -992,3 +992,21 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor)
     free(xor_data);
     return ret;
 }
+
+ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
+{
+    uint64_t i;
+    ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+
+    ret->_handle.temporary = 1;
+    ret->length = bytes->length;
+    ret->data_direct = calloc(1, bytes->length);
+
+    ks_bytes_get_data(bytes, ret->data_direct);
+    for (i = 0; i < ret->length; i++)
+    {
+        uint64_t b = ret->data_direct[i];
+        ret->data_direct[i] = (b << amount) | (b >> (8 - amount))
+    }
+    return ret;
+}
