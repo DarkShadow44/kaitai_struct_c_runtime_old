@@ -20,8 +20,14 @@ REVERSE_FUNC(uint8_t);
 
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config)
 {
-    ks_stream* ret = calloc(1, sizeof(ks_stream));
+    ks_stream* ret;
 
+    if (!file)
+    {
+        return 0;
+    }
+
+    ret = calloc(1, sizeof(ks_stream));
     ret->config = *config;
     ret->is_file = 1;
     ret->file = file;
@@ -81,7 +87,7 @@ void ks_stream_seek(ks_stream* stream, uint64_t pos)
     stream->pos = pos;
 }
 
-static void stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* bytes)
+static void stream_read_bytes_nomove(const ks_stream* stream, uint64_t len, uint8_t* bytes)
 {
     CHECK2(stream->pos + len > stream->length, "End of stream", VOID);
     if (stream->is_file)
@@ -97,7 +103,7 @@ static void stream_read_bytes_nomove(const ks_stream* stream, int len, uint8_t* 
     }
 }
 
-static void stream_read_bytes(ks_stream* stream, int len, void* bytes)
+static void stream_read_bytes(ks_stream* stream, uint64_t len, void* bytes)
 {
     CHECK(stream_read_bytes_nomove(stream, len, bytes), VOID);
     stream->pos += len;
@@ -464,7 +470,7 @@ int ks_bytes_get_data(const ks_bytes* bytes, void* data)
     {
         stream_read_bytes_nomove(stream, bytes->length, data);
     }
-    return *bytes->stream->err;
+    return bytes->stream ? *bytes->stream->err : 0;
 }
 
 int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index)
@@ -490,16 +496,18 @@ int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index)
 ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
-    uint8_t* data;
     uint64_t len = bytes->length;
 
-    data = malloc(len);
-    ks_bytes_get_data(bytes, data);
+    ret->data_direct = malloc(len);
+    if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
+    {
+        ret->length = 0;
+        return ret;
+    }
 
-    while (len > 0 && data[len - 1] == pad)
+    while (len > 0 && ret->data_direct[len - 1] == pad)
         len--;
 
-    ret->data_direct = data;
     ret->length = len;
     return ret;
 }
@@ -508,19 +516,21 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint64_t len = 0;
-    uint8_t* data;
     uint64_t max_len = bytes->length;
 
-    data = malloc(len);
-    ks_bytes_get_data(bytes, data);
+    ret->data_direct = malloc(max_len);
+    if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
+    {
+        ret->length = 0;
+        return ret;
+    }
 
-    while (len < max_len && data[len] != term)
+    while (len < max_len && ret->data_direct[len] != term)
         len++;
 
     if (include && len < max_len)
         len++;
 
-    ret->data_direct = data;
     ret->length = len;
     return ret;
 }
@@ -711,7 +721,11 @@ static int64_t bytes_minmax(ks_bytes* bytes, ks_bool max)
     }
 
     data = malloc(bytes->length);
-    ks_bytes_get_data(bytes, data);
+    if (ks_bytes_get_data(bytes, data) != 0)
+    {
+        free(data);
+        return 0;
+    }
     minmax = data[0];
 
     for (i = 1; i < bytes->length; i++)
@@ -821,12 +835,14 @@ ks_string* ks_string_reverse(ks_string* str)
 ks_string* ks_string_from_bytes(ks_bytes* bytes)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    const ks_stream* stream = bytes->stream;
 
     ret->_handle.temporary = 1;
     ret->len = bytes->length;
     ret->data = calloc(1, ret->len + 1);
-    CHECK(ks_bytes_get_data(bytes, ret->data), ret);
+    if(ks_bytes_get_data(bytes, ret->data) != 0)
+    {
+        ret->len = 0;
+    }
 
     return ret;
 }
@@ -903,8 +919,12 @@ int ks_bytes_compare(ks_bytes* left, ks_bytes* right)
     data_left = malloc(left->length);
     data_right = malloc(right->length);
 
-    ks_bytes_get_data(left, data_left);
-    ks_bytes_get_data(right, data_right);
+    if (ks_bytes_get_data(left, data_left) != 0 || ks_bytes_get_data(right, data_right) != 0)
+    {
+        free(data_left);
+        free(data_right);
+        return 0;
+    }
 
     len = min(left->length, right->length);
 
@@ -959,7 +979,12 @@ ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
 
-    ks_bytes_get_data(bytes, ret->data_direct);
+    if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
+    {
+        ret->length = 0;
+        return ret;
+    }
+
     for (i = 0; i < ret->length; i++)
     {
         ret->data_direct[i] ^= xor_int;
@@ -978,8 +1003,12 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes)
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
 
-    ks_bytes_get_data(bytes, ret->data_direct);
-    ks_bytes_get_data(xor_bytes, xor_data);
+    if (ks_bytes_get_data(bytes, ret->data_direct) != 0 || ks_bytes_get_data(xor_bytes, xor_data) != 0)
+    {
+        free(xor_data);
+        ret->length = 0;
+        return ret;
+    }
 
     for (i = 0; i < ret->length; i++)
     {
@@ -1003,7 +1032,12 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
 
-    ks_bytes_get_data(bytes, ret->data_direct);
+    if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
+    {
+        ret->length = 0;
+        return ret;
+    }
+
     for (i = 0; i < ret->length; i++)
     {
         uint64_t b = ret->data_direct[i];
