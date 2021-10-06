@@ -98,7 +98,7 @@ typedef struct ks_bytes_
 typedef struct ks_custom_decoder_
 {
     void* userdata;
-    ks_bytes* (*decode)(void* userdata, ks_bytes* data);
+    ks_bytes* (*decode)(void* userdata, ks_bytes* bytes);
 } ks_custom_decoder;
 
 typedef struct ks_string_
@@ -293,7 +293,8 @@ int64_t ks_bytes_min(ks_bytes* bytes);
 int64_t ks_bytes_max(ks_bytes* bytes);
 int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 int64_t ks_mod(int64_t a, int64_t b);
-ks_bytes* ks_bytes_process_xor(ks_bytes* bytes, int xor);
+ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor, int count_xor_bytes);
+ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor);
 
 
 /* Dynamic functions */

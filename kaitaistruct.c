@@ -949,10 +949,11 @@ int64_t ks_mod(int64_t a, int64_t b)
     return r;
 }
 
-ks_bytes* ks_bytes_process_xor(ks_bytes* bytes, int xor)
+ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor, int count_xor_bytes)
 {
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
@@ -962,5 +963,32 @@ ks_bytes* ks_bytes_process_xor(ks_bytes* bytes, int xor)
     {
         ret->data_direct[i] ^= xor;
     }
+    return ret;
+}
+
+ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor)
+{
+    uint64_t i;
+    int xor_pos = 0;
+    ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+    uint64_t* xor_data = malloc(xor->length);
+
+    ret->_handle.temporary = 1;
+    ret->length = bytes->length;
+    ret->data_direct = calloc(1, bytes->length);
+
+    ks_bytes_get_data(bytes, ret->data_direct);
+    ks_bytes_get_data(xor, xor_data);
+
+    for (i = 0; i < ret->length; i++)
+    {
+        ret->data_direct[i] ^= xor_data[xor_pos];
+        xor_pos++;
+        if (xor_pos >= xor->length)
+        {
+            xor_pos = 0;
+        }
+    }
+    free(xor_data);
     return ret;
 }
