@@ -25,7 +25,7 @@ ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config)
     ret->config = *config;
     ret->is_file = 1;
     ret->file = file;
-    ret->err = calloc(1, sizeof(ks_bool));
+    ret->err = calloc(1, sizeof(int));
 
     fseek(file, 0, SEEK_END);
     ret->length = ftell(file);
@@ -55,7 +55,7 @@ ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* confi
     ret->is_file = 1;
     ret->data = data;
     ret->length = len;
-    ret->err = calloc(1, sizeof(ks_bool));
+    ret->err = calloc(1, sizeof(int));
 
     return ret;
 }
@@ -453,7 +453,7 @@ uint64_t ks_bytes_get_length(const ks_bytes* bytes)
     return bytes->length;
 }
 
-void ks_bytes_get_data(const ks_bytes* bytes, void* data)
+int ks_bytes_get_data(const ks_bytes* bytes, void* data)
 {
     const ks_stream *stream = bytes->stream;
     if (bytes->data_direct)
@@ -462,8 +462,9 @@ void ks_bytes_get_data(const ks_bytes* bytes, void* data)
     }
     else
     {
-        CHECK(stream_read_bytes_nomove(stream, bytes->length, data), VOID);
+        stream_read_bytes_nomove(stream, bytes->length, data);
     }
+    return *bytes->stream->err;
 }
 
 int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index)
@@ -1009,4 +1010,13 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
         ret->data_direct[i] = (b << count) | (b >> (8 - count));
     }
     return ret;
+}
+
+void ks_bytes_set_error(ks_bytes* bytes, int err)
+{
+    int* error = bytes->stream->err;
+    if (*error == 0)
+    {
+        *error = err;
+    }
 }

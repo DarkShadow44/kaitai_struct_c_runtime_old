@@ -48,20 +48,22 @@ typedef enum ks_type_
 #define KS_DO_NOT_USE(X) DO_NOT_USE_##X
 #endif
 
-typedef struct ks_data_
+typedef struct ks_bytes_ ks_bytes;
+
+typedef struct ks_custom_decoder_
 {
-    uint8_t* data;
-    uint64_t length;
-} ks_data;
+    void* userdata;
+    ks_bytes* (*decode)(void* userdata, ks_bytes* bytes);
+} ks_custom_decoder;
 
 typedef struct ks_config_
 {
-    int (*inflate_func)(ks_data* data_in, ks_data* data_out);
+     ks_bytes* (*inflate)(ks_bytes* bytes);
 } ks_config;
 
 typedef struct ks_stream_
 {
-    ks_bool* err;
+    int* err;
     ks_config config;
     ks_bool KS_DO_NOT_USE(is_file);
     FILE* KS_DO_NOT_USE(file);
@@ -94,12 +96,6 @@ typedef struct ks_bytes_
     uint64_t KS_DO_NOT_USE(length);
     uint8_t* KS_DO_NOT_USE(data_direct);
 } ks_bytes;
-
-typedef struct ks_custom_decoder_
-{
-    void* userdata;
-    ks_bytes* (*decode)(void* userdata, ks_bytes* bytes);
-} ks_custom_decoder;
 
 typedef struct ks_string_
 {
@@ -261,7 +257,7 @@ void ks_stream_seek(ks_stream* stream, uint64_t pos);
 ks_bytes* ks_bytes_from_data(uint64_t count, ...);
 ks_bytes* ks_bytes_create(void* data, uint64_t length);
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
-void ks_bytes_get_data(const ks_bytes* bytes, void* data);
+int ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
 ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 
@@ -296,25 +292,37 @@ int64_t ks_mod(int64_t a, int64_t b);
 ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor, int count_xor_bytes);
 ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor);
 ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
+void ks_bytes_set_error(ks_bytes* bytes, int err);
 
 
 /* Dynamic functions */
 
 #ifdef KS_USE_ZLIB
 #include <zlib.h>
-static int ks_inflate(ks_data* data_in, ks_data* data_out)
+static ks_bytes* ks_inflate(ks_bytes* bytes)
 {
+    uint64_t length_in = ks_bytes_get_length(bytes);
+    uint8_t* data_in = 0;
+    uint8_t* data_out = 0;
+    uint64_t length_out = 0;
+    stream* stream = bytes->stream;
     z_stream strm = {0};
     uint8_t outbuffer[1024*64];
     int ret;
 
-    memset(data_out, 0, sizeof(ks_data));
+    data_in = malloc(length_in);
+    ret = ks_bytes_get_data(bytes, data_in);
+    if (ret != 0)
+    {
+        ks_bytes_set_error(bytes, 1);
+        return 0;
+    }
 
     if (inflateInit(&strm) != Z_OK)
-        return 1;
+        goto error;
 
-    strm.next_in = (Bytef*)data_in->data;
-    strm.avail_in = data_in->length;
+    strm.next_in = (Bytef*)data_in;
+    strm.avail_in = length_in;
 
     do {
         strm.next_out = outbuffer;
@@ -322,31 +330,38 @@ static int ks_inflate(ks_data* data_in, ks_data* data_out)
 
         ret = inflate(&strm, 0);
 
-        if (data_out->length < strm.total_out) {
-            data_out->data = (uint8_t*)realloc(data_out->data, strm.total_out);
-            memcpy(data_out->data + data_out->length, outbuffer, strm.total_out - data_out->length);
-            data_out->length = strm.total_out;
+        if (length_out < strm.total_out) {
+            data_out = (uint8_t*)realloc(data_out, strm.total_out);
+            memcpy(data_out + length_out, outbuffer, strm.total_out - length_out);
+            length_out = strm.total_out;
         }
     } while (ret == Z_OK);
 
     if (ret != Z_STREAM_END)
-        return 1;
+        goto error;
 
     if (inflateEnd(&strm) != Z_OK)
-        return 1;
+        goto error;
 
+    return ks_bytes_create(data_out, length_out);
+
+ error:
+    free(data_in);
+    free(data_out);
+    ks_bytes_set_error(bytes, 1);
     return 0;
 }
 #else
-static int ks_inflate(ks_data* data_in, ks_data* data_out)
+static ks_bytes* ks_inflate(ks_bytes* bytes)
 {
-    return 1;
+    ks_bytes_set_error(bytes, 1);
+    return 0;
 }
 #endif
 
 static void ks_config_init(ks_config* config)
 {
-    config->inflate_func = ks_inflate;
+    config->inflate = ks_inflate;
 }
 
 #endif
