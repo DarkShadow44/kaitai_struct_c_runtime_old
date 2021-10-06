@@ -609,9 +609,9 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
             case KS_TYPE_ARRAY_FLOAT:
                 return array_get_float(handle, other) > array_get_float(handle, minmax);
             case KS_TYPE_ARRAY_STRING:
-                return ks_string_compare((ks_string*)other, (ks_string*)minmax) > 0;
+                return ks_string_compare(*(ks_string**)other, *(ks_string**)minmax) > 0;
             case KS_TYPE_ARRAY_BYTES:
-                return ks_bytes_compare((ks_bytes*)other, (ks_bytes*)minmax) > 0;
+                return ks_bytes_compare(*(ks_bytes**)other, *(ks_bytes**)minmax) > 0;
             default:
                 break;
         }
@@ -626,9 +626,9 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
             case KS_TYPE_ARRAY_FLOAT:
                 return array_get_float(handle, other) > array_get_float(handle, minmax);
             case KS_TYPE_ARRAY_STRING:
-                return ks_string_compare((ks_string*)other, (ks_string*)minmax) < 0;
+                return ks_string_compare(*(ks_string**)other, *(ks_string**)minmax) < 0;
             case KS_TYPE_ARRAY_BYTES:
-                return ks_bytes_compare((ks_bytes*)other, (ks_bytes*)minmax) < 0;
+                return ks_bytes_compare(*(ks_bytes**)other, *(ks_bytes**)minmax) < 0;
             default:
                 break;
         }
@@ -652,7 +652,7 @@ static void* array_min_max(ks_handle* handle, ks_bool max)
     pointer = array.data;
     for (i = 1; i < array.size; i++)
     {
-        char* data_new = handle->data + (i * handle->type_size);
+        char* data_new = array.data + (i * handle->type_size);
         if (array_min_max_func(handle, max, pointer, data_new))
         {
             pointer = data_new;
@@ -768,15 +768,6 @@ ks_string* ks_string_concat(ks_string* s1, ks_string* s2)
     ret->data = calloc(1, ret->len + 1);
     memcpy(ret->data, s1->data, s1->len);
     memcpy(ret->data + s1->len, s2->data, s2->len);
-
-    if (s1->_handle.temporary)
-    {
-        ks_string_destroy(s1);
-    }
-    if (s2->_handle.temporary)
-    {
-        ks_string_destroy(s2);
-    }
 
     return ret;
 }
