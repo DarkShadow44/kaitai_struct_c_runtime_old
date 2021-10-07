@@ -58,7 +58,7 @@ ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* confi
     ks_stream* ret = calloc(1, sizeof(ks_stream));
 
     ret->config = *config;
-    ret->is_file = 1;
+    ret->is_file = 0;
     ret->data = data;
     ret->length = len;
     ret->err = calloc(1, sizeof(int));
