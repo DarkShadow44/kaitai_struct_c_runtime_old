@@ -40,6 +40,7 @@ typedef enum ks_type_
     KS_TYPE_ARRAY_USERTYPE,
     KS_TYPE_BYTES,
     KS_TYPE_USERTYPE,
+    KS_TYPE_STRING,
 } ks_type;
 
 #ifdef KS_DEPEND_ON_INTERNALS

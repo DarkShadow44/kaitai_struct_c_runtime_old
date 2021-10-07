@@ -129,7 +129,7 @@ static int64_t stream_read_int(ks_stream* stream, int len, ks_bool big_endian)
     return ret;
 }
 
-ks_bool is_big_endian(void)
+static ks_bool is_big_endian(void)
 {
     int n = 1;
     return *(char *)&n == 0;
@@ -392,6 +392,7 @@ ks_bytes* ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bo
     uint8_t byte;
     uint64_t start = stream->pos;
     uint64_t len;
+    ret->_handle = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     do
     {
         CHECK(stream_read_bytes(stream, 1, &byte), ret);
@@ -418,6 +419,7 @@ ks_bytes* ks_stream_read_bytes_full(ks_stream* stream)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
+    ret->_handle = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = stream->length - stream->pos;
     ret->stream = stream;
     ret->pos = stream->pos;
@@ -433,6 +435,7 @@ ks_bytes* ks_bytes_from_data(uint64_t count, ...)
     va_list list;
     int i;
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = count;
     ret->data_direct = calloc(1, count);
     va_start(list, count);
@@ -449,6 +452,7 @@ ks_bytes* ks_bytes_from_data(uint64_t count, ...)
 ks_bytes* ks_bytes_create(void* data, uint64_t length)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = length;
     ret->data_direct = data;
     return ret;
@@ -498,6 +502,7 @@ ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad)
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint64_t len = bytes->length;
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->data_direct = malloc(len);
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
     {
@@ -518,6 +523,7 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
     uint64_t len = 0;
     uint64_t max_len = bytes->length;
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->data_direct = malloc(max_len);
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
     {
@@ -540,7 +546,7 @@ ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type
     ks_handle ret = {0};
 
     ret.stream = stream;
-    ret.pos = stream->pos;
+    ret.pos = stream ? stream->pos : 0;
     ret.data = data;
     ret.type = type;
     ret.type_size = type_size;
@@ -763,6 +769,7 @@ int64_t ks_bytes_max(ks_bytes* bytes)
 ks_string* ks_string_concat(ks_string* s1, ks_string* s2)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
     ret->len = s1->len + s2->len;
     ret->data = calloc(1, ret->len + 1);
@@ -775,6 +782,7 @@ ks_string* ks_string_concat(ks_string* s1, ks_string* s2)
 ks_string* ks_string_from_int(int64_t i, int base)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     char buf[50] = {0};
     if (base == 10)
     {
@@ -812,6 +820,7 @@ ks_string* ks_string_reverse(ks_string* str)
 {
     int i;
     ks_string* ret = calloc(1, sizeof(ks_string));
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
     ret->len = str->len;
     ret->data = calloc(1, ret->len);
@@ -827,6 +836,7 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
     ret->len = bytes->length;
     ret->data = calloc(1, ret->len + 1);
@@ -841,6 +851,7 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes)
 ks_string* ks_string_from_cstr(const char* data)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
     ret->len = strlen(data);
     ret->data = calloc(1, ret->len + 1);
@@ -852,6 +863,7 @@ ks_string* ks_string_from_cstr(const char* data)
 ks_string* ks_string_substr(ks_string* str, int start, int end)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
     ret->len = end - start + 1;
     ret->data = calloc(1, ret->len + 1);
@@ -863,8 +875,7 @@ ks_string* ks_string_substr(ks_string* str, int start, int end)
     type_array* ret = calloc(1, sizeof(type_array)); \
     va_list list; \
     int i; \
-    ret->_handle.type = type_enum; \
-    ret->_handle.type_size = sizeof(type_element); \
+    ret->_handle = ks_handle_create(0, ret, type_enum, sizeof(type_element)); \
     ret->_handle.temporary = 1; \
     ret->size = count; \
     ret->data = calloc(ret->_handle.type_size, count); \
@@ -966,6 +977,7 @@ ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
@@ -990,6 +1002,7 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes)
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint64_t* xor_data = malloc(xor_bytes->length);
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
@@ -1019,6 +1032,7 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
