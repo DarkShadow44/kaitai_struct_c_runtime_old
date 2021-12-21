@@ -49,6 +49,7 @@ ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes)
     ret->start = bytes->pos;
     ret->length = bytes->length;
     ret->err = bytes->stream->err;
+    ret->parent = bytes->stream;
 
     return ret;
 }
@@ -64,6 +65,15 @@ ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* confi
     ret->err = calloc(1, sizeof(int));
 
     return ret;
+}
+
+ks_stream* ks_stream_get_root(ks_stream* stream)
+{
+    while (stream->parent)
+    {
+        stream = stream->parent;
+    }
+    return stream;
 }
 
 ks_bool ks_stream_is_eof(ks_stream* stream)

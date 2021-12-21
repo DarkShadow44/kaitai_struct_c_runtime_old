@@ -26,6 +26,17 @@
 #define CHECKV(expr) \
     CHECK(expr, VOID)
 
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
+#define FIELD(expr, field)              \
+    ({                                  \
+        __auto_type expr_ = (expr);     \
+        expr_->_get_##field(expr_);            \
+    })
+#else
+#define FIELD(expr, field) \
+    expr->_get_##field(expr)
+#endif
+
 typedef char ks_bool;
 
 typedef enum ks_type_
@@ -74,6 +85,7 @@ typedef struct ks_stream_
     uint64_t KS_DO_NOT_USE(pos);
     uint64_t KS_DO_NOT_USE(bits);
     int KS_DO_NOT_USE(bits_left);
+    struct ks_stream_* KS_DO_NOT_USE(parent);
 } ks_stream;
 
 typedef struct ks_handle_
@@ -219,6 +231,7 @@ typedef struct ks_array_usertype_generic_
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
 ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes);
+ks_stream* ks_stream_get_root(ks_stream* stream);
 
 uint8_t ks_stream_read_u1(ks_stream* stream);
 uint16_t ks_stream_read_u2le(ks_stream* stream);
