@@ -120,6 +120,7 @@ typedef struct ks_string_
 typedef struct ks_usertype_generic_
 {
     ks_handle _handle;
+    void* _internal;
     void* _parent;
 } ks_usertype_generic;
 
