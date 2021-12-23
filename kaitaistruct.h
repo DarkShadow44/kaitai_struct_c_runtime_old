@@ -30,11 +30,11 @@
 #define FIELD(expr, field)              \
     ({                                  \
         __auto_type expr_ = (expr);     \
-        expr_->_get_##field(expr_);            \
+        expr_->internal->_get_##field(expr_);            \
     })
 #else
 #define FIELD(expr, field) \
-    expr->_get_##field(expr)
+    expr->internal->_get_##field(expr)
 #endif
 
 typedef char ks_bool;
