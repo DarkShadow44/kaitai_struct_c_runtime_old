@@ -1069,3 +1069,12 @@ void ks_bytes_set_error(ks_bytes* bytes, int err)
         *error = err;
     }
 }
+
+ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data)
+{
+    while (data->_parent)
+    {
+        data = data->_parent;
+    }
+    return data;
+}
