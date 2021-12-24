@@ -957,7 +957,7 @@ int ks_bytes_compare(ks_bytes* left, ks_bytes* right)
         {
             ret = -1;
         }
-        if (right->length > left->length)
+        if (left->length > right->length)
         {
             ret = 1;
         }
