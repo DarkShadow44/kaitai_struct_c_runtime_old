@@ -991,6 +991,7 @@ ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
+    ret->stream = bytes->stream;
 
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
     {
@@ -1016,6 +1017,7 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes)
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
+    ret->stream = bytes->stream;
 
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0 || ks_bytes_get_data(xor_bytes, xor_data) != 0)
     {
@@ -1046,6 +1048,7 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
     ret->_handle.temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
+    ret->stream = bytes->stream;
 
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
     {
