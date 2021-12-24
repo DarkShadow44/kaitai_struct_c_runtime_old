@@ -649,7 +649,7 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
             case KS_TYPE_ARRAY_INT:
                 return array_get_int(handle, other) < array_get_int(handle, minmax);
             case KS_TYPE_ARRAY_FLOAT:
-                return array_get_float(handle, other) > array_get_float(handle, minmax);
+                return array_get_float(handle, other) < array_get_float(handle, minmax);
             case KS_TYPE_ARRAY_STRING:
                 return ks_string_compare(*(ks_string**)other, *(ks_string**)minmax) < 0;
             case KS_TYPE_ARRAY_BYTES:
