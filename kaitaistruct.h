@@ -309,6 +309,7 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes);
 ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
 void ks_bytes_set_error(ks_bytes* bytes, int err);
 ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data);
+int ks_usertype_get_depth(ks_usertype_generic* data);
 
 
 /* Dynamic functions */

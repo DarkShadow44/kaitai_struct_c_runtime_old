@@ -1078,3 +1078,14 @@ ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data)
     }
     return data;
 }
+
+int ks_usertype_get_depth(ks_usertype_generic* data)
+{
+    int depth = 0;
+    while (data->_parent)
+    {
+        depth++;
+        data = data->_parent;
+    }
+    return depth;
+}
