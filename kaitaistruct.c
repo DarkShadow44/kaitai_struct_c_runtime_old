@@ -459,12 +459,13 @@ ks_bytes* ks_bytes_from_data(uint64_t count, ...)
     return ret;
 }
 
-ks_bytes* ks_bytes_create(void* data, uint64_t length)
+ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = length;
     ret->data_direct = data;
+    ret->stream = original->stream;
     return ret;
 }
 

@@ -270,7 +270,7 @@ uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes* ks_bytes_from_data(uint64_t count, ...);
-ks_bytes* ks_bytes_create(void* data, uint64_t length);
+ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
 int ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
@@ -359,7 +359,7 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
     if (inflateEnd(&strm) != Z_OK)
         goto error;
 
-    return ks_bytes_create(data_out, length_out);
+    return ks_bytes_create(bytes, data_out, length_out);
 
  error:
     free(data_in);
