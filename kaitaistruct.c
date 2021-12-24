@@ -884,9 +884,9 @@ ks_string* ks_string_substr(ks_string* str, int start, int end)
     ks_string* ret = calloc(1, sizeof(ks_string));
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
-    ret->len = end - start + 1;
+    ret->len = end - start;
     ret->data = calloc(1, ret->len + 1);
-    memcpy(ret->data, ret->data + start, ret->len);
+    memcpy(ret->data, str->data + start, ret->len);
     return ret;
 }
 
