@@ -416,7 +416,7 @@ ks_bytes* ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bo
         CHECK(stream_read_bytes(stream, 1, &byte), ret);
     } while(byte != terminator);
 
-    len = stream->pos - start + 1;
+    len = stream->pos - start;
     if (!consume)
     {
         stream->pos--;
