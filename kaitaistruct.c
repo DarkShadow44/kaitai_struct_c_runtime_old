@@ -831,6 +831,10 @@ int64_t ks_string_to_int(ks_string* str, int base)
     {
         sscanf(str->data, "%llx", &i);
     }
+    else
+    {
+        return strtol(str->data, 0, base);
+    }
 
     return i;
 }
