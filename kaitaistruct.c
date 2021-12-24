@@ -995,6 +995,17 @@ int64_t ks_mod(int64_t a, int64_t b)
     return r;
 }
 
+int64_t ks_div(int64_t a, int64_t b)
+{
+    int64_t ret = a / b;
+    int64_t mod = a %b;
+    if (a < 0 && b > 0 && mod != 0)
+    {
+        ret--;
+    }
+    return ret;
+}
+
 ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_xor_bytes)
 {
     uint64_t i;

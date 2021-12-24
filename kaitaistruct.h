@@ -306,6 +306,7 @@ int64_t ks_bytes_min(ks_bytes* bytes);
 int64_t ks_bytes_max(ks_bytes* bytes);
 int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 int64_t ks_mod(int64_t a, int64_t b);
+int64_t ks_div(int64_t a, int64_t b);
 ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_xor_bytes);
 ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes);
 ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
