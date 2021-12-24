@@ -705,25 +705,25 @@ double ks_array_max_float(ks_handle* handle)
 ks_string* ks_array_min_string(ks_handle* handle)
 {
     void* ret = array_min_max(handle, 0);
-    return (ks_string*)ret;
+    return *(ks_string**)ret;
 }
 
 ks_string* ks_array_max_string(ks_handle* handle)
 {
     void* ret = array_min_max(handle, 1);
-    return (ks_string*)ret;
+    return *(ks_string**)ret;
 }
 
 ks_bytes* ks_array_min_bytes(ks_handle* handle)
 {
     void* ret = array_min_max(handle, 0);
-    return (ks_bytes*)ret;
+    return *(ks_bytes**)ret;
 }
 
 ks_bytes* ks_array_max_bytes(ks_handle* handle)
 {
     void* ret = array_min_max(handle, 1);
-    return (ks_bytes*)ret;
+    return *(ks_bytes**)ret;
 }
 
 static int64_t bytes_minmax(ks_bytes* bytes, ks_bool max)
