@@ -1035,7 +1035,7 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes)
     uint64_t i;
     int xor_pos = 0;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
-    uint64_t* xor_data = malloc(xor_bytes->length);
+    uint8_t* xor_data = malloc(xor_bytes->length);
 
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->_handle.temporary = 1;
