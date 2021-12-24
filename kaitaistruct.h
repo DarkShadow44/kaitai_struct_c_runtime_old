@@ -27,10 +27,12 @@
     CHECK(expr, VOID)
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
-#define FIELD(expr, field)              \
-    ({                                  \
-        __auto_type expr_ = (expr);     \
-        expr_->_internal->_get_##field(expr_);            \
+#define FIELD(expr, field)                                          \
+    ({                                                              \
+        __auto_type expr_ = (expr);                                 \
+        __auto_type ret = expr_->_internal->_get_##field(expr_);    \
+        CHECKV(;);                                                  \
+        ret;                                                        \
     })
 #else
 #define FIELD(expr, field) \
