@@ -44,8 +44,16 @@ ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes)
 
     ret->config = bytes->stream->config;
     ret->is_file = bytes->stream->is_file;
-    ret->file = bytes->stream->file;
-    ret->data = bytes->stream->data;
+    if (bytes->data_direct)
+    {
+        ret->data  = bytes->data_direct;
+        ret->is_file = 0;
+    }
+    else
+    {
+        ret->file = bytes->stream->file;
+        ret->data = bytes->stream->data;
+    }
     ret->start = bytes->pos;
     ret->length = bytes->length;
     ret->err = bytes->stream->err;
