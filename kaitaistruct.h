@@ -40,6 +40,7 @@
 #endif
 
 typedef char ks_bool;
+typedef void (*ks_callback)(void* data);
 
 typedef enum ks_type_
 {
