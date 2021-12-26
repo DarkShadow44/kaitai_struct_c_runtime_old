@@ -11,15 +11,19 @@
 
 #define CHECK2(expr, message, DEFAULT) \
     if (expr) { \
+        char buf[1024];     \
         *stream->err = 1; \
-        printf("%s:%d - %s\n", __FILE__, __LINE__, message); \
+        sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
+        stream->config->log(buf);   \
         return DEFAULT; \
     }
 
 #define CHECK(expr, DEFAULT) \
     expr; \
     if (*stream->err) { \
-        printf("%s:%d\n", __FILE__, __LINE__); \
+        char buf[1024]; \
+        sprintf(buf, "%s:%d\n", __FILE__, __LINE__); \
+        stream->config->log(buf);   \
         return DEFAULT; \
     }
 
@@ -41,6 +45,7 @@
 
 typedef char ks_bool;
 typedef void (*ks_callback)(void* data);
+typedef void (*ks_log)(const char* text);
 
 typedef enum ks_type_
 {
@@ -76,6 +81,7 @@ typedef struct ks_config_
 {
     ks_bytes* (*inflate)(ks_bytes* bytes);
     ks_string* (*str_decode)(ks_string* src, const char* src_enc);
+    ks_log log;
 } ks_config;
 
 typedef struct ks_stream_
@@ -435,10 +441,11 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc)
 }
 #endif
 
-static void ks_config_init(ks_config* config)
+static void ks_config_init(ks_config* config, ks_log log)
 {
     config->inflate = ks_inflate;
     config->str_decode = ks_str_decode;
+    config->log = log;
 }
 
 #endif
