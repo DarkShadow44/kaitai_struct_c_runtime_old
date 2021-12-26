@@ -449,7 +449,7 @@ ks_bytes* ks_stream_read_bytes_full(ks_stream* stream)
     return ret;
 }
 
-ks_bytes* ks_bytes_from_data(uint64_t count, ...)
+ks_bytes* ks_bytes_from_data(ks_stream* stream, uint64_t count, ...)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     va_list list;
@@ -458,6 +458,7 @@ ks_bytes* ks_bytes_from_data(uint64_t count, ...)
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = count;
     ret->data_direct = calloc(1, count);
+    ret->stream = stream;
     va_start(list, count);
 
     for (i = 0; i < count; i++)
@@ -525,6 +526,7 @@ ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad)
 
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->data_direct = malloc(len);
+    ret->stream = bytes->stream;
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
     {
         ret->length = 0;
@@ -546,6 +548,7 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
 
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->data_direct = malloc(max_len);
+    ret->stream = bytes->stream;
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
     {
         ret->length = 0;
