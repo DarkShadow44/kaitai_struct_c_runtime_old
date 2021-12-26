@@ -63,6 +63,7 @@ typedef enum ks_type_
 #endif
 
 typedef struct ks_bytes_ ks_bytes;
+typedef struct ks_string_ ks_string;
 
 typedef struct ks_custom_decoder_
 {
@@ -72,13 +73,14 @@ typedef struct ks_custom_decoder_
 
 typedef struct ks_config_
 {
-     ks_bytes* (*inflate)(ks_bytes* bytes);
+    ks_bytes* (*inflate)(ks_bytes* bytes);
+    ks_string* (*str_decode)(ks_string* src, const char* src_enc);
 } ks_config;
 
 typedef struct ks_stream_
 {
     int* err;
-    ks_config config;
+    ks_config* config;
     ks_bool KS_DO_NOT_USE(is_file);
     FILE* KS_DO_NOT_USE(file);
     uint8_t* KS_DO_NOT_USE(data);
@@ -282,7 +284,7 @@ ks_string* ks_string_concat(ks_string* s1, ks_string* s2);
 void ks_string_destroy(ks_string* s);
 ks_string* ks_string_from_int(int64_t i, int base);
 int64_t ks_string_to_int(ks_string* str, int base);
-ks_string* ks_string_from_bytes(ks_bytes* bytes);
+ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding);
 ks_string* ks_string_from_cstr(const char* data);
 ks_string* ks_string_reverse(ks_string* str);
 ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...);
@@ -311,6 +313,7 @@ ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_
 ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes);
 ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
 void ks_bytes_set_error(ks_bytes* bytes, int err);
+void ks_string_set_error(ks_string* bytes, int err);
 ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data);
 int ks_usertype_get_depth(ks_usertype_generic* data);
 
@@ -378,9 +381,63 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
 }
 #endif
 
+#ifdef KS_USE_ICONV
+#include <iconv.h>
+#include <errno.h>
+static ks_string* ks_str_decode(ks_string* src, const char* src_enc) {
+    iconv_t cd = iconv_open("UTF-8", src_enc);
+    size_t src_left = src->len;
+    size_t dst_len = src->len * 2;
+    char* dst = (char*)calloc(1, dst_len);
+    char* dst_ptr = dst;
+    char* src_ptr = src->data;
+    size_t dst_left = dst_len;
+    size_t res = -1;
+    ks_string* ret;
+
+    if (cd == (iconv_t) -1) {
+        if (errno == EINVAL) {
+            ks_string_set_error(src, 1);
+        } else {
+            ks_string_set_error(src, 1);
+        }
+    }
+
+    while (res == (size_t) -1) {
+        res = iconv(cd, &src_ptr, &src_left, &dst_ptr, &dst_left);
+        if (res == (size_t) -1) {
+            if (errno == E2BIG) {
+                size_t dst_used = dst_len - dst_left;
+                dst_left += dst_len;
+                dst_len += dst_len;
+                dst = (char*)realloc(dst, dst_len);
+                memset(dst, 0, dst_left);
+                dst_ptr = &dst[dst_used];
+            } else {
+                ks_string_set_error(src, 1);
+            }
+        }
+    }
+
+    if (iconv_close(cd) != 0) {
+        ks_string_set_error(src, 1);
+    }
+
+    ret = ks_string_from_cstr(dst);
+    free(dst);
+    return ret;
+}
+#else
+static ks_string* ks_str_decode(ks_string* src, const char* src_enc)
+{
+    return src;
+}
+#endif
+
 static void ks_config_init(ks_config* config)
 {
     config->inflate = ks_inflate;
+    config->str_decode = ks_str_decode;
 }
 
 #endif

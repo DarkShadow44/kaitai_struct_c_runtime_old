@@ -28,7 +28,8 @@ ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config)
     }
 
     ret = calloc(1, sizeof(ks_stream));
-    ret->config = *config;
+    ret->config = calloc(1, sizeof(ks_config));
+    *ret->config = *config;
     ret->is_file = 1;
     ret->file = file;
     ret->err = calloc(1, sizeof(int));
@@ -66,7 +67,8 @@ ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* confi
 {
     ks_stream* ret = calloc(1, sizeof(ks_stream));
 
-    ret->config = *config;
+    ret->config = calloc(1, sizeof(ks_config));
+    *ret->config = *config;
     ret->is_file = 0;
     ret->data = data;
     ret->length = len;
@@ -855,17 +857,24 @@ ks_string* ks_string_reverse(ks_string* str)
     return ret;
 }
 
-ks_string* ks_string_from_bytes(ks_bytes* bytes)
+ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding)
 {
-    ks_string* ret = calloc(1, sizeof(ks_string));
+    ks_string* tmp = calloc(1, sizeof(ks_string));
+    ks_string* ret;
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
-    ret->_handle.temporary = 1;
-    ret->len = bytes->length;
-    ret->data = calloc(1, ret->len + 1);
-    if(ks_bytes_get_data(bytes, ret->data) != 0)
+    tmp->_handle = ks_handle_create(0, tmp, KS_TYPE_STRING, sizeof(ks_string));
+    tmp->_handle.temporary = 1;
+    tmp->len = bytes->length;
+    tmp->data = calloc(1, tmp->len + 1);
+    if(ks_bytes_get_data(bytes, tmp->data) != 0)
     {
-        ret->len = 0;
+        tmp->len = 0;
+    }
+
+    ret = bytes->stream->config->str_decode(tmp, encoding->data);
+
+    if (ret != tmp) {
+        free(tmp);
     }
 
     return ret;
@@ -1091,6 +1100,15 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
 void ks_bytes_set_error(ks_bytes* bytes, int err)
 {
     int* error = bytes->stream->err;
+    if (*error == 0)
+    {
+        *error = err;
+    }
+}
+
+void ks_string_set_error(ks_string* str, int err)
+{
+    int* error = str->_handle.stream->err;
     if (*error == 0)
     {
         *error = err;
