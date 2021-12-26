@@ -322,7 +322,6 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
 void ks_bytes_set_error(ks_bytes* bytes, int err);
 void ks_string_set_error(ks_string* bytes, int err);
 ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data);
-int ks_usertype_get_depth(ks_usertype_generic* data);
 
 
 /* Dynamic functions */
