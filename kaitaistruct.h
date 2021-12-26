@@ -389,7 +389,7 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc) {
     iconv_t cd = iconv_open("UTF-8", src_enc);
     size_t src_left = src->len;
     size_t dst_len = src->len * 2;
-    char* dst = (char*)calloc(1, dst_len);
+    char* dst = (char*)calloc(1, dst_len + 1); /* Alloc one more for null terminator */
     char* dst_ptr = dst;
     char* src_ptr = src->data;
     size_t dst_left = dst_len;
@@ -411,9 +411,9 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc) {
                 size_t dst_used = dst_len - dst_left;
                 dst_left += dst_len;
                 dst_len += dst_len;
-                dst = (char*)realloc(dst, dst_len);
-                memset(dst_ptr, 0, dst_left);
+                dst = (char*)realloc(dst, dst_len + 1); /* Alloc one more for null terminator */
                 dst_ptr = &dst[dst_used];
+                memset(dst_ptr, 0, dst_left + 1); /* Alloc one more for null terminator */
             } else {
                 ks_string_set_error(src, 1);
             }
