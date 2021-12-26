@@ -86,7 +86,7 @@ ks_stream* ks_stream_get_root(ks_stream* stream)
 
 ks_bool ks_stream_is_eof(ks_stream* stream)
 {
-    return stream->pos == stream->length;
+    return stream->pos == stream->length && stream->bits_left == 0;
 }
 
 uint64_t ks_stream_get_pos(ks_stream* stream)
