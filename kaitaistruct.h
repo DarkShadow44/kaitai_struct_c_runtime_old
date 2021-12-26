@@ -411,7 +411,7 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc) {
                 dst_left += dst_len;
                 dst_len += dst_len;
                 dst = (char*)realloc(dst, dst_len);
-                memset(dst, 0, dst_left);
+                memset(dst_ptr, 0, dst_left);
                 dst_ptr = &dst[dst_used];
             } else {
                 ks_string_set_error(src, 1);
