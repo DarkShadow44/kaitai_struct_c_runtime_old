@@ -806,8 +806,8 @@ ks_string* ks_string_concat(ks_string* s1, ks_string* s2)
 ks_string* ks_string_from_int(int64_t i, int base)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     char buf[50] = {0};
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     if (base == 10)
     {
         sprintf(buf, "%lld", (long long int)i);
