@@ -846,7 +846,7 @@ ks_string* ks_string_reverse(ks_string* str)
     ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     ret->_handle.temporary = 1;
     ret->len = str->len;
-    ret->data = calloc(1, ret->len);
+    ret->data = calloc(1, ret->len + 1);
 
     for (i = 0; i < str->len; i++)
     {
