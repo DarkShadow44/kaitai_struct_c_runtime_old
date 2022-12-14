@@ -68,23 +68,23 @@ typedef enum ks_type_
 #define KS_DO_NOT_USE(X) DO_NOT_USE_##X
 #endif
 
-typedef struct ks_bytes_ ks_bytes;
-typedef struct ks_string_ ks_string;
+struct ks_bytes;
+struct ks_string;
 
-typedef struct ks_custom_decoder_
+typedef struct ks_custom_decoder
 {
     void* userdata;
-    ks_bytes* (*decode)(void* userdata, ks_bytes* bytes);
+    struct ks_bytes* (*decode)(void* userdata, struct ks_bytes* bytes);
 } ks_custom_decoder;
 
-typedef struct ks_config_
+typedef struct ks_config
 {
-    ks_bytes* (*inflate)(ks_bytes* bytes);
-    ks_string* (*str_decode)(ks_string* src, const char* src_enc);
+    struct ks_bytes* (*inflate)(struct ks_bytes* bytes);
+    struct ks_string* (*str_decode)(struct ks_string* src, const char* src_enc);
     ks_log log;
 } ks_config;
 
-typedef struct ks_stream_
+typedef struct ks_stream
 {
     int* err;
     ks_config* config;
@@ -96,10 +96,10 @@ typedef struct ks_stream_
     uint64_t KS_DO_NOT_USE(pos);
     uint64_t KS_DO_NOT_USE(bits);
     int KS_DO_NOT_USE(bits_left);
-    struct ks_stream_* KS_DO_NOT_USE(parent);
+    struct ks_stream* KS_DO_NOT_USE(parent);
 } ks_stream;
 
-typedef struct ks_handle_
+typedef struct ks_handle
 {
     ks_stream* KS_DO_NOT_USE(stream);
     /* Might need to add parent/rootdata pointer as well... */
@@ -112,7 +112,7 @@ typedef struct ks_handle_
     ks_bool KS_DO_NOT_USE(temporary); /* To mark something allocated as temporary, e.g. strings */
 } ks_handle;
 
-typedef struct ks_bytes_
+typedef struct ks_bytes
 {
     ks_handle _handle;
     ks_stream* KS_DO_NOT_USE(stream);
@@ -121,119 +121,119 @@ typedef struct ks_bytes_
     uint8_t* KS_DO_NOT_USE(data_direct);
 } ks_bytes;
 
-typedef struct ks_string_
+typedef struct ks_string
 {
     ks_handle _handle;
     int64_t len;
     char* data;
 } ks_string;
 
-typedef struct ks_usertype_generic_
+typedef struct ks_usertype_generic
 {
     ks_handle _handle;
     void* _internal;
     void* _parent;
 } ks_usertype_generic;
 
-typedef struct ks_array_generic_
+typedef struct ks_array_generic
 {
     ks_handle _handle;
     int64_t size;
     void* data;
 } ks_array_generic;
 
-typedef struct ks_array_uint8_t_
+typedef struct ks_array_uint8_t
 {
     ks_handle _handle;
     int64_t size;
     uint8_t* data;
 } ks_array_uint8_t;
 
-typedef struct ks_array_uint16_t_
+typedef struct ks_array_uint16_t
 {
     ks_handle _handle;
     int64_t size;
     uint16_t* data;
 } ks_array_uint16_t;
 
-typedef struct ks_array_uint32_t_
+typedef struct ks_array_uint32_t
 {
     ks_handle _handle;
     int64_t size;
     uint32_t* data;
 } ks_array_uint32_t;
 
-typedef struct ks_array_uint64_t_
+typedef struct ks_array_uint64_t
 {
     ks_handle _handle;
     int64_t size;
     uint64_t* data;
 } ks_array_uint64_t;
 
-typedef struct ks_array_int8_t_
+typedef struct ks_array_int8_t
 {
     ks_handle _handle;
     int64_t size;
     int8_t* data;
 } ks_array_int8_t;
 
-typedef struct ks_array_int16_t_
+typedef struct ks_array_int16_t
 {
     ks_handle _handle;
     int64_t size;
     int16_t* data;
 } ks_array_int16_t;
 
-typedef struct ks_array_int32_t_
+typedef struct ks_array_int32_t
 {
     ks_handle _handle;
     int64_t size;
     int32_t* data;
 } ks_array_int32_t;
 
-typedef struct ks_array_int64_t_
+typedef struct ks_array_int64_t
 {
     ks_handle _handle;
     int64_t size;
     int64_t* data;
 } ks_array_int64_t;
 
-typedef struct ks_array_float_
+typedef struct ks_array_float
 {
     ks_handle _handle;
     int64_t size;
     float* data;
 } ks_array_float;
 
-typedef struct ks_array_double_
+typedef struct ks_array_double
 {
     ks_handle _handle;
     int64_t size;
     double* data;
 } ks_array_double;
 
-typedef struct ks_array_string_
+typedef struct ks_array_string
 {
     ks_handle _handle;
     int64_t size;
     ks_string** data;
 } ks_array_string;
 
-typedef struct ks_array_bytes_
+typedef struct ks_array_bytes
 {
     ks_handle _handle;
     int64_t size;
     ks_bytes** data;
 } ks_array_bytes;
 
-typedef struct ks_array_any_
+typedef struct ks_array_any
 {
     ks_handle _handle;
     int64_t size;
     void** data;
 } ks_array_any;
 
-typedef struct ks_array_usertype_generic_
+typedef struct ks_array_usertype_generic
 {
     ks_handle _handle;
     int64_t size;
