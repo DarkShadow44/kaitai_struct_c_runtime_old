@@ -459,11 +459,38 @@ ks_bytes* ks_bytes_from_data(ks_stream* stream, uint64_t count, ...)
     ret->length = count;
     ret->data_direct = calloc(1, count);
     ret->stream = stream;
-    va_start(list, count);
 
+    va_start(list, count);
     for (i = 0; i < count; i++)
     {
         ret->data_direct[i] = va_arg(list, int);
+    }
+    va_end(list);
+
+    return ret;
+}
+
+ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...)
+{
+    ks_bytes* ret = calloc(1, sizeof(ks_bytes));
+    va_list list;
+    int i;
+    int count = 0;
+
+    while (va_arg(list, int) != 0xffff)
+    {
+        count++;
+    }
+
+    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    ret->length = count;
+    ret->data_direct = calloc(1, count);
+    ret->stream = stream;
+
+    va_start(list, stream);
+    for (i = 0; i < count; i++)
+    {
+        ret->data_direct[i] =  va_arg(list, int);
     }
     va_end(list);
 

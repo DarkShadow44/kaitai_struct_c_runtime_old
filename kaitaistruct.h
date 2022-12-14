@@ -281,6 +281,7 @@ uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes* ks_bytes_from_data(ks_stream* stream, uint64_t count, ...);
+ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...);
 ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
 int ks_bytes_get_data(const ks_bytes* bytes, void* data);
