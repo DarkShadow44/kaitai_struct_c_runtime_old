@@ -1,6 +1,8 @@
 #define KS_DEPEND_ON_INTERNALS
 #include "kaitaistruct.h"
 
+#define VOID
+
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 #define max(a,b) (((a) > (b)) ? (a) : (b))
 

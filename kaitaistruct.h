@@ -7,8 +7,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define VOID
-
 #define CHECK2(expr, message, DEFAULT) \
     if (expr) { \
         char buf[1024];     \
@@ -28,7 +26,7 @@
     }
 
 #define CHECKV(expr) \
-    CHECK(expr, VOID)
+    CHECK(expr, data)
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
 #define FIELD(expr, field)                                          \
