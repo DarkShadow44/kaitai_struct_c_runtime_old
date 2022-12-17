@@ -319,7 +319,9 @@ struct ks_bytes
 
 #endif
 
-/* Macros */
+#ifdef KS_DEPEND_ON_INTERNALS
+
+/* Internal Macros */
 
 #define HANDLE(expr) \
     ((ks_usertype_generic*)expr)->handle
@@ -356,6 +358,8 @@ struct ks_bytes
 #else
 #define FIELD(expr, type, field) \
     ((type##_internal*)HANDLE(expr)->internal_read)->_get_##field((type*)expr)
+#endif
+
 #endif
 
 /* Dynamic functions */
