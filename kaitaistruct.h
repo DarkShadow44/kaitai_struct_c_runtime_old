@@ -58,7 +58,8 @@ struct ks_string
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
 
-ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
+ks_bytes* ks_bytes_recreate(ks_bytes* original, void* data, uint64_t length);
+
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
 int ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
@@ -419,7 +420,7 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
     if (inflateEnd(&strm) != Z_OK)
         goto error;
 
-    return ks_bytes_create(bytes, data_out, length_out);
+    return ks_bytes_recreate(bytes, data_out, length_out);
 
  error:
     free(data_in);
