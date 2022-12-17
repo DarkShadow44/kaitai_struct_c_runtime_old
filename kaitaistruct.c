@@ -1149,9 +1149,9 @@ void ks_string_set_error(ks_string* str, int err)
 
 ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data)
 {
-    while (data->_parent)
+    while (data->_handle.parent)
     {
-        data = data->_parent;
+        data = data->_handle.parent;
     }
     return data;
 }

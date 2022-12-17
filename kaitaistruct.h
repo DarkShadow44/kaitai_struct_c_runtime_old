@@ -32,13 +32,13 @@
 #define FIELD(expr, type, field)                                          \
     ({                                                              \
         __auto_type expr_ = (expr);                                 \
-        __auto_type ret = ((type##_internal*)expr_->_handle.internal_read)->_get_##field(expr_);    \
+        __auto_type ret = ((type##_internal*)expr_->_handle.internal_read)->_get_##field((type*)expr_);    \
         CHECKV(;);                                                  \
         ret;                                                        \
     })
 #else
 #define FIELD(expr, type, field) \
-    ((type##_internal*)expr->_handle.internal_read)->_get_##field(expr)
+    ((type##_internal*)expr->_handle.internal_read)->_get_##field((type*)expr)
 #endif
 
 typedef char ks_bool;
@@ -101,6 +101,7 @@ typedef struct ks_handle
 {
     ks_stream* KS_DO_NOT_USE(stream);
     void* internal_read;
+    struct ks_usertype_generic* parent;
     /* Might need to add parent/rootdata pointer as well... */
     int KS_DO_NOT_USE(pos);
     void* KS_DO_NOT_USE(data);
@@ -130,7 +131,6 @@ typedef struct ks_string
 typedef struct ks_usertype_generic
 {
     ks_handle _handle;
-    void* _parent;
 } ks_usertype_generic;
 
 typedef struct ks_array_generic
