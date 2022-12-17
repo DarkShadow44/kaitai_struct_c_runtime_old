@@ -1,3 +1,13 @@
+/* Kaitai Struct C Runtime Header
+
+Usage:
+1) Define KS_USE_ICONV or KS_USE_ZLIB if needed
+2) Include {TYPENAME}.h
+3) Create config with ks_config_init
+4) Create stream, e.g. ks_stream_create_from_file
+5) Read type: ksx_read_{TYPENAME}_from_stream;
+*/
+
 #ifndef KAITAI_STRUCT_H
 #define KAITAI_STRUCT_H
 
@@ -7,48 +17,59 @@
 #include <string.h>
 #include <stdarg.h>
 
-#define HANDLE(expr) \
-    ((ks_usertype_generic*)expr)->handle
-
-#define CHECK2(expr, message, DEFAULT) \
-    if (expr) { \
-        char buf[1024];     \
-        *stream->err = 1; \
-        sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
-        stream->config->log(buf);   \
-        return DEFAULT; \
-    }
-
-#define CHECK(expr, DEFAULT) \
-    expr; \
-    if (*stream->err) { \
-        char buf[1024]; \
-        sprintf(buf, "%s:%d\n", __FILE__, __LINE__); \
-        stream->config->log(buf);   \
-        return DEFAULT; \
-    }
-
-#define CHECKV(expr) \
-    CHECK(expr, data)
-
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
-#define FIELD(expr, type, field)                                          \
-    ({                                                              \
-        __auto_type expr_ = (expr);                                 \
-        __auto_type ret = ((type##_internal*)HANDLE(expr_)->internal_read)->_get_##field((type*)expr_);    \
-        CHECKV(;);                                                  \
-        ret;                                                        \
-    })
-#else
-#define FIELD(expr, type, field) \
-    ((type##_internal*)HANDLE(expr)->internal_read)->_get_##field((type*)expr)
-#endif
+typedef struct ks_stream ks_stream;
+typedef struct ks_handle ks_handle;
+typedef struct ks_bytes ks_bytes;
+typedef struct ks_string ks_string;
 
 typedef char ks_bool;
 typedef void (*ks_callback)(void* data);
 typedef void (*ks_log)(const char* text);
 
-typedef enum ks_type_
+typedef struct ks_config
+{
+    ks_bytes* (*inflate)(ks_bytes* bytes);
+    ks_string* (*str_decode)(ks_string* src, const char* src_enc);
+    ks_log log;
+} ks_config;
+
+static void ks_config_init(ks_config* config, ks_log log);
+
+typedef struct ks_usertype_generic
+{
+    ks_handle* handle;
+} ks_usertype_generic;
+
+typedef struct ks_custom_decoder
+{
+    void* userdata;
+    ks_bytes* (*decode)(void* userdata, ks_bytes* bytes);
+} ks_custom_decoder;
+
+struct ks_string
+{
+    ks_usertype_generic kaitai_base;
+    int64_t len;
+    char* data;
+};
+
+/* Public functions */
+
+ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
+ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
+
+ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
+uint64_t ks_bytes_get_length(const ks_bytes* bytes);
+int ks_bytes_get_data(const ks_bytes* bytes, void* data);
+
+void ks_bytes_set_error(ks_bytes* bytes, int err);
+void ks_string_set_error(ks_string* bytes, int err);
+
+void ks_stream_destroy(ks_stream* stream);
+
+/* Typeinfo */
+
+typedef enum ks_type
 {
     KS_TYPE_UNKNOWN = 0,
     KS_TYPE_ARRAY_UINT,
@@ -63,79 +84,7 @@ typedef enum ks_type_
     KS_TYPE_STRING,
 } ks_type;
 
-#ifdef KS_DEPEND_ON_INTERNALS
-#define KS_DO_NOT_USE(X) X
-#else
-#define KS_DO_NOT_USE(X) DO_NOT_USE_##X
-#endif
-
-struct ks_bytes;
-struct ks_string;
-
-typedef struct ks_custom_decoder
-{
-    void* userdata;
-    struct ks_bytes* (*decode)(void* userdata, struct ks_bytes* bytes);
-} ks_custom_decoder;
-
-typedef struct ks_config
-{
-    struct ks_bytes* (*inflate)(struct ks_bytes* bytes);
-    struct ks_string* (*str_decode)(struct ks_string* src, const char* src_enc);
-    ks_log log;
-} ks_config;
-
-typedef struct ks_stream
-{
-    int* err;
-    ks_config* config;
-    ks_bool KS_DO_NOT_USE(is_file);
-    FILE* KS_DO_NOT_USE(file);
-    uint8_t* KS_DO_NOT_USE(data);
-    uint64_t KS_DO_NOT_USE(start);
-    uint64_t KS_DO_NOT_USE(length);
-    uint64_t KS_DO_NOT_USE(pos);
-    uint64_t KS_DO_NOT_USE(bits);
-    int KS_DO_NOT_USE(bits_left);
-    struct ks_stream* KS_DO_NOT_USE(parent);
-} ks_stream;
-
-typedef struct ks_handle
-{
-    ks_stream* KS_DO_NOT_USE(stream);
-    void* internal_read;
-    struct ks_usertype_generic* parent;
-    /* Might need to add parent/rootdata pointer as well... */
-    int KS_DO_NOT_USE(pos);
-    void* KS_DO_NOT_USE(data);
-    ks_type KS_DO_NOT_USE(type);
-    int KS_DO_NOT_USE(type_size);
-    void* KS_DO_NOT_USE(write_func); /* To write back */
-    uint64_t KS_DO_NOT_USE(last_size); /* To make sure the size when writing back isn't too big */
-    ks_bool KS_DO_NOT_USE(temporary); /* To mark something allocated as temporary, e.g. strings */
-} ks_handle;
-
-typedef struct ks_usertype_generic
-{
-    ks_handle* handle;
-} ks_usertype_generic;
-
-typedef struct ks_bytes
-{
-    ks_usertype_generic kaitai_base;
-    ks_stream* KS_DO_NOT_USE(stream);
-    uint64_t KS_DO_NOT_USE(pos);
-    uint64_t KS_DO_NOT_USE(length);
-    uint8_t* KS_DO_NOT_USE(data_direct);
-} ks_bytes;
-
-typedef struct ks_string
-{
-    ks_usertype_generic kaitai_base;
-    int64_t len;
-    char* data;
-} ks_string;
-
+/* Array types */
 
 typedef struct ks_array_generic
 {
@@ -242,10 +191,16 @@ typedef struct ks_array_usertype_generic
     ks_usertype_generic** data;
 } ks_array_usertype_generic;
 
-ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
-ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
+/* Private functions */
+
+ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
+
+void ks_string_destroy(ks_string* s);
+void ks_bytes_destroy(ks_bytes* bytes);
+
 ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes);
 ks_stream* ks_stream_get_root(ks_stream* stream);
+ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data);
 
 uint8_t ks_stream_read_u1(ks_stream* stream);
 uint16_t ks_stream_read_u2le(ks_stream* stream);
@@ -275,8 +230,6 @@ void ks_stream_align_to_byte(ks_stream* stream);
 ks_bytes* ks_stream_read_bytes(ks_stream* stream, int len);
 ks_bytes* ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bool include, ks_bool consume, ks_bool eos_error);
 ks_bytes* ks_stream_read_bytes_full(ks_stream* stream);
-void ks_bytes_destroy(ks_bytes* bytes);
-void ks_stream_destroy(ks_stream* stream);
 ks_bool ks_stream_is_eof(ks_stream* stream);
 uint64_t ks_stream_get_pos(ks_stream* stream);
 uint64_t ks_stream_get_length(ks_stream* stream);
@@ -284,48 +237,126 @@ void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
 ks_bytes* ks_bytes_from_data(ks_stream* stream, uint64_t count, ...);
 ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...);
-ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
-uint64_t ks_bytes_get_length(const ks_bytes* bytes);
-int ks_bytes_get_data(const ks_bytes* bytes, void* data);
-
-ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
+ks_bytes* ks_array_min_bytes(ks_usertype_generic* array);
+ks_bytes* ks_array_max_bytes(ks_usertype_generic* array);
+ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad);
+ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include);
+ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_xor_bytes);
+ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes);
+ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
+int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 
 ks_string* ks_string_concat(ks_string* s1, ks_string* s2);
-void ks_string_destroy(ks_string* s);
 ks_string* ks_string_from_int(int64_t i, int base);
 int64_t ks_string_to_int(ks_string* str, int base);
 ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding);
 ks_string* ks_string_from_cstr(const char* data);
 ks_string* ks_string_reverse(ks_string* str);
+ks_string* ks_string_substr(ks_string* str, int start, int end);
+
 ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...);
 ks_array_double* ks_array_double_from_data(uint64_t count, ...);
 ks_array_string* ks_array_string_from_data(uint64_t count, ...);
 ks_array_usertype_generic* ks_array_usertype_generic_from_data(uint64_t count, ...);
-int64_t ks_array_min_int(ks_usertype_generic* array);
-int64_t ks_array_max_int(ks_usertype_generic* array);
-double ks_array_min_float(ks_usertype_generic* array);
-double ks_array_max_float(ks_usertype_generic* array);
-ks_string* ks_array_min_string(ks_usertype_generic* array);
-ks_string* ks_array_max_string(ks_usertype_generic* array);
-ks_bytes* ks_array_min_bytes(ks_usertype_generic* array);
-ks_bytes* ks_array_max_bytes(ks_usertype_generic* array);
-ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad);
-ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include);
+
 int ks_string_compare(ks_string* left, ks_string* right);
 int ks_bytes_compare(ks_bytes* left, ks_bytes* right);
-ks_string* ks_string_substr(ks_string* str, int start, int end);
+
+ks_string* ks_array_min_string(ks_usertype_generic* array);
+ks_string* ks_array_max_string(ks_usertype_generic* array);
+int64_t ks_array_min_int(ks_usertype_generic* array);
+int64_t ks_array_max_int(ks_usertype_generic* array);
 int64_t ks_bytes_min(ks_bytes* bytes);
 int64_t ks_bytes_max(ks_bytes* bytes);
-int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
+double ks_array_min_float(ks_usertype_generic* array);
+double ks_array_max_float(ks_usertype_generic* array);
+
 int64_t ks_mod(int64_t a, int64_t b);
 int64_t ks_div(int64_t a, int64_t b);
-ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_xor_bytes);
-ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes);
-ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
-void ks_bytes_set_error(ks_bytes* bytes, int err);
-void ks_string_set_error(ks_string* bytes, int err);
-ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data);
 
+
+/* Internal structures */
+
+#ifdef KS_DEPEND_ON_INTERNALS
+
+struct ks_stream
+{
+    int* err;
+    ks_config* config;
+    ks_bool is_file;
+    FILE* file;
+    uint8_t* data;
+    uint64_t start;
+    uint64_t length;
+    uint64_t pos;
+    uint64_t bits;
+    int bits_left;
+    struct ks_stream* parent;
+};
+
+struct ks_handle
+{
+    ks_stream* stream;
+    void* internal_read;
+    struct ks_usertype_generic* parent;
+    int pos;
+    void* data;
+    ks_type type;
+    int type_size;
+    void* write_func; /* To write back */
+    uint64_t last_size; /* To make sure the size when writing back isn't too big */
+    ks_bool temporary; /* To mark something allocated as temporary, e.g. strings */
+};
+
+struct ks_bytes
+{
+    ks_usertype_generic kaitai_base;
+    ks_stream* stream;
+    uint64_t pos;
+    uint64_t length;
+    uint8_t* data_direct;
+};
+
+#endif
+
+/* Macros */
+
+#define HANDLE(expr) \
+    ((ks_usertype_generic*)expr)->handle
+
+#define CHECK2(expr, message, DEFAULT) \
+    if (expr) { \
+        char buf[1024];     \
+        *stream->err = 1; \
+        sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
+        stream->config->log(buf);   \
+        return DEFAULT; \
+    }
+
+#define CHECK(expr, DEFAULT) \
+    expr; \
+    if (*stream->err) { \
+        char buf[1024]; \
+        sprintf(buf, "%s:%d\n", __FILE__, __LINE__); \
+        stream->config->log(buf);   \
+        return DEFAULT; \
+    }
+
+#define CHECKV(expr) \
+    CHECK(expr, data)
+
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
+#define FIELD(expr, type, field)                                          \
+    ({                                                              \
+        __auto_type expr_ = (expr);                                 \
+        __auto_type ret = ((type##_internal*)HANDLE(expr_)->internal_read)->_get_##field((type*)expr_);    \
+        CHECKV(;);                                                  \
+        ret;                                                        \
+    })
+#else
+#define FIELD(expr, type, field) \
+    ((type##_internal*)HANDLE(expr)->internal_read)->_get_##field((type*)expr)
+#endif
 
 /* Dynamic functions */
 
