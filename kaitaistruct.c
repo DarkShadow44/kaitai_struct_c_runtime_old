@@ -57,7 +57,7 @@ ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes)
         ret->file = bytes->stream->file;
         ret->data = bytes->stream->data;
     }
-    ret->start = bytes->pos;
+    ret->start = bytes->pos + bytes->stream->start;
     ret->length = bytes->length;
     ret->err = bytes->stream->err;
     ret->parent = bytes->stream;
