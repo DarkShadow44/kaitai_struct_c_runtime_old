@@ -62,6 +62,8 @@ ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
 int ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
+ks_string* ks_string_from_cstr(const char* data);
+
 void ks_bytes_set_error(ks_bytes* bytes, int err);
 void ks_string_set_error(ks_string* bytes, int err);
 
@@ -250,7 +252,6 @@ ks_string* ks_string_concat(ks_string* s1, ks_string* s2);
 ks_string* ks_string_from_int(int64_t i, int base);
 int64_t ks_string_to_int(ks_string* str, int base);
 ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding);
-ks_string* ks_string_from_cstr(const char* data);
 ks_string* ks_string_reverse(ks_string* str);
 ks_string* ks_string_substr(ks_string* str, int start, int end);
 
