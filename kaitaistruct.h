@@ -25,15 +25,22 @@ typedef struct ks_string ks_string;
 typedef char ks_bool;
 typedef void (*ks_callback)(void* data);
 typedef void (*ks_log)(const char* text);
+typedef ks_bytes* (*ks_ptr_inflate)(ks_bytes* bytes);
+typedef ks_string* (*ks_ptr_str_decode)(ks_string* src, const char* src_enc);
 
-typedef struct ks_config
+typedef enum ks_error
 {
-    ks_bytes* (*inflate)(ks_bytes* bytes);
-    ks_string* (*str_decode)(ks_string* src, const char* src_enc);
-    ks_log log;
-} ks_config;
+    KS_ERROR_OKAY,
+    KS_ERROR_OTHER,
+    KS_ERROR_ZLIB,
+    KS_ERROR_ZLIB_MISSING,
+    KS_ERROR_ICONV,
+} ks_error;
 
-static void ks_config_init(ks_config* config, ks_log log);
+typedef struct ks_config ks_config;
+
+static ks_config* ks_config_create(ks_log log);
+void ks_config_destroy(ks_config* config);
 
 typedef struct ks_usertype_generic
 {
@@ -59,15 +66,17 @@ ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
 
 ks_bytes* ks_bytes_recreate(ks_bytes* original, void* data, uint64_t length);
-ks_bytes* ks_bytes_create(void* data, uint64_t length);
+ks_bytes* ks_bytes_create(ks_config* config, void* data, uint64_t length);
 
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
-int ks_bytes_get_data(const ks_bytes* bytes, void* data);
+ks_error ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
-ks_string* ks_string_from_cstr(const char* data);
+ks_string* ks_string_from_cstr(ks_config* config, const char* data);
 
-void ks_bytes_set_error(ks_bytes* bytes, int err);
-void ks_string_set_error(ks_string* bytes, int err);
+void ks_bytes_set_error(ks_bytes* bytes, ks_error error);
+void ks_string_set_error(ks_string* bytes, ks_error error);
+
+ks_config* ks_usertype_get_config(ks_usertype_generic* base);
 
 void ks_stream_destroy(ks_stream* stream);
 
@@ -197,6 +206,8 @@ typedef struct ks_array_usertype_generic
 
 /* Private functions */
 
+ks_config* ks_config_create_internal(ks_log log, ks_ptr_inflate inflate, ks_ptr_str_decode str_decode);
+
 ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 
 void ks_string_destroy(ks_string* s);
@@ -239,8 +250,8 @@ uint64_t ks_stream_get_pos(ks_stream* stream);
 uint64_t ks_stream_get_length(ks_stream* stream);
 void ks_stream_seek(ks_stream* stream, uint64_t pos);
 
-ks_bytes* ks_bytes_from_data(ks_stream* stream, uint64_t count, ...);
-ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...);
+ks_bytes* ks_bytes_from_data(ks_config* config, uint64_t count, ...);
+ks_bytes* ks_bytes_from_data_terminated(ks_config* config, ...);
 ks_bytes* ks_array_min_bytes(ks_usertype_generic* array);
 ks_bytes* ks_array_max_bytes(ks_usertype_generic* array);
 ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad);
@@ -251,25 +262,25 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count);
 int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index);
 
 ks_string* ks_string_concat(ks_string* s1, ks_string* s2);
-ks_string* ks_string_from_int(int64_t i, int base);
+ks_string* ks_string_from_int(ks_config* config, int64_t i, int base);
 int64_t ks_string_to_int(ks_string* str, int base);
 ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding);
 ks_string* ks_string_reverse(ks_string* str);
 ks_string* ks_string_substr(ks_string* str, int start, int end);
 
-ks_array_int8_t* ks_array_int8_t_from_data(uint64_t count, ...);
-ks_array_int16_t* ks_array_int16_t_from_data(uint64_t count, ...);
-ks_array_int32_t* ks_array_int32_t_from_data(uint64_t count, ...);
-ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...);
-ks_array_uint8_t* ks_array_uint8_t_from_data(uint64_t count, ...);
-ks_array_uint16_t* ks_array_uint16_t_from_data(uint64_t count, ...);
-ks_array_uint32_t* ks_array_uint32_t_from_data(uint64_t count, ...);
-ks_array_uint64_t* ks_array_uint64_t_from_data(uint64_t count, ...);
-ks_array_float* ks_array_float_from_data(uint64_t count, ...);
-ks_array_double* ks_array_double_from_data(uint64_t count, ...);
+ks_array_int8_t* ks_array_int8_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_int16_t* ks_array_int16_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_int32_t* ks_array_int32_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_int64_t* ks_array_int64_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_uint8_t* ks_array_uint8_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_uint16_t* ks_array_uint16_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_uint32_t* ks_array_uint32_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_uint64_t* ks_array_uint64_t_from_data(ks_config* config, uint64_t count, ...);
+ks_array_float* ks_array_float_from_data(ks_config* config, uint64_t count, ...);
+ks_array_double* ks_array_double_from_data(ks_config* config, uint64_t count, ...);
 
-ks_array_string* ks_array_string_from_data(uint64_t count, ...);
-ks_array_usertype_generic* ks_array_usertype_generic_from_data(uint64_t count, ...);
+ks_array_string* ks_array_string_from_data(ks_config* config, uint64_t count, ...);
+ks_array_usertype_generic* ks_array_usertype_generic_from_data(ks_config* config, uint64_t count, ...);
 
 int ks_string_compare(ks_string* left, ks_string* right);
 int ks_bytes_compare(ks_bytes* left, ks_bytes* right);
@@ -293,7 +304,6 @@ int64_t ks_div(int64_t a, int64_t b);
 
 struct ks_stream
 {
-    int* err;
     ks_config* config;
     ks_bool is_file;
     FILE* file;
@@ -323,10 +333,18 @@ struct ks_handle
 struct ks_bytes
 {
     ks_usertype_generic kaitai_base;
-    ks_stream* stream;
     uint64_t pos;
     uint64_t length;
     uint8_t* data_direct;
+};
+
+struct ks_config
+{
+    ks_error error;
+    ks_stream* fake_stream;
+    ks_ptr_inflate inflate;
+    ks_ptr_str_decode str_decode;
+    ks_log log;
 };
 
 #endif
@@ -341,7 +359,7 @@ struct ks_bytes
 #define CHECK2(expr, message, DEFAULT) \
     if (expr) { \
         char buf[1024];     \
-        *stream->err = 1; \
+        stream->config->error = 1; \
         sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
         stream->config->log(buf);   \
         return DEFAULT; \
@@ -349,7 +367,7 @@ struct ks_bytes
 
 #define CHECK(expr, DEFAULT) \
     expr; \
-    if (*stream->err) { \
+    if (stream->config->error) { \
         char buf[1024]; \
         sprintf(buf, "%s:%d\n", __FILE__, __LINE__); \
         stream->config->log(buf);   \
@@ -387,12 +405,13 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
     z_stream strm = {0};
     uint8_t outbuffer[1024*64];
     int ret;
+    ks_error err;
 
     data_in = (uint8_t*)malloc(length_in);
-    ret = ks_bytes_get_data(bytes, data_in);
-    if (ret != 0)
+    err = ks_bytes_get_data(bytes, data_in);
+    if (err != KS_ERROR_OKAY)
     {
-        ks_bytes_set_error(bytes, 1);
+        ks_bytes_set_error(bytes, KS_ERROR_ZLIB);
         return 0;
     }
 
@@ -426,13 +445,13 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
  error:
     free(data_in);
     free(data_out);
-    ks_bytes_set_error(bytes, 1);
+    ks_bytes_set_error(bytes, KS_ERROR_ZLIB);
     return 0;
 }
 #else
 static ks_bytes* ks_inflate(ks_bytes* bytes)
 {
-    ks_bytes_set_error(bytes, 1);
+    ks_bytes_set_error(bytes, KS_ERROR_ZLIB_MISSING);
     return 0;
 }
 #endif
@@ -453,9 +472,9 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc) {
 
     if (cd == (iconv_t) -1) {
         if (errno == EINVAL) {
-            ks_string_set_error(src, 1);
+            ks_string_set_error(src, KS_ERROR_ICONV);
         } else {
-            ks_string_set_error(src, 1);
+            ks_string_set_error(src, KS_ERROR_ICONV);
         }
     }
 
@@ -470,16 +489,16 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc) {
                 dst_ptr = &dst[dst_used];
                 memset(dst_ptr, 0, dst_left + 1); /* Alloc one more for null terminator */
             } else {
-                ks_string_set_error(src, 1);
+                ks_string_set_error(src, KS_ERROR_ICONV);
             }
         }
     }
 
     if (iconv_close(cd) != 0) {
-        ks_string_set_error(src, 1);
+        ks_string_set_error(src, KS_ERROR_ICONV);
     }
 
-    ret = ks_string_from_cstr(dst);
+    ret = ks_string_from_cstr(ks_usertype_get_config(&src->kaitai_base), dst);
     free(dst);
     return ret;
 }
@@ -490,11 +509,9 @@ static ks_string* ks_str_decode(ks_string* src, const char* src_enc)
 }
 #endif
 
-static void ks_config_init(ks_config* config, ks_log log)
+static ks_config* ks_config_create(ks_log log)
 {
-    config->inflate = ks_inflate;
-    config->str_decode = ks_str_decode;
-    config->log = log;
+    return ks_config_create_internal(log, ks_inflate, ks_str_decode);
 }
 
 #endif
