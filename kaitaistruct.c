@@ -51,13 +51,14 @@ ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes)
     {
         ret->data  = bytes->data_direct;
         ret->is_file = 0;
+        ret->start = 0;
     }
     else
     {
         ret->file = bytes->stream->file;
         ret->data = bytes->stream->data;
+        ret->start = bytes->pos + bytes->stream->start;
     }
-    ret->start = bytes->pos + bytes->stream->start;
     ret->length = bytes->length;
     ret->err = bytes->stream->err;
     ret->parent = bytes->stream;
