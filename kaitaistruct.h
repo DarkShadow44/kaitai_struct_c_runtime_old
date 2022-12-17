@@ -254,8 +254,17 @@ ks_string* ks_string_from_cstr(const char* data);
 ks_string* ks_string_reverse(ks_string* str);
 ks_string* ks_string_substr(ks_string* str, int start, int end);
 
+ks_array_int8_t* ks_array_int8_t_from_data(uint64_t count, ...);
+ks_array_int16_t* ks_array_int16_t_from_data(uint64_t count, ...);
+ks_array_int32_t* ks_array_int32_t_from_data(uint64_t count, ...);
 ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...);
+ks_array_uint8_t* ks_array_uint8_t_from_data(uint64_t count, ...);
+ks_array_uint16_t* ks_array_uint16_t_from_data(uint64_t count, ...);
+ks_array_uint32_t* ks_array_uint32_t_from_data(uint64_t count, ...);
+ks_array_uint64_t* ks_array_uint64_t_from_data(uint64_t count, ...);
+ks_array_float* ks_array_float_from_data(uint64_t count, ...);
 ks_array_double* ks_array_double_from_data(uint64_t count, ...);
+
 ks_array_string* ks_array_string_from_data(uint64_t count, ...);
 ks_array_usertype_generic* ks_array_usertype_generic_from_data(uint64_t count, ...);
 

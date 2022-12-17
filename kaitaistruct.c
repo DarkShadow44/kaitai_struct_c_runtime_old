@@ -954,9 +954,49 @@ ks_string* ks_string_substr(ks_string* str, int start, int end)
     va_end(list);  \
     return ret;
 
+ks_array_int8_t* ks_array_int8_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_int8_t, int, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_int16_t* ks_array_int16_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_int16_t, int, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_int32_t* ks_array_int32_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_int32_t, int32_t, KS_TYPE_ARRAY_INT);
+}
+
 ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...)
 {
     ARRAY_FROM_DATA(ks_array_int64_t, int64_t, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_uint8_t* ks_array_uint8_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_uint8_t, int, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_uint16_t* ks_array_uint16_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_uint16_t, int, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_uint32_t* ks_array_uint32_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_uint32_t, uint32_t, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_uint64_t* ks_array_uint64_t_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_uint64_t, uint64_t, KS_TYPE_ARRAY_INT);
+}
+
+ks_array_float* ks_array_float_from_data(uint64_t count, ...)
+{
+    ARRAY_FROM_DATA(ks_array_float, double, KS_TYPE_ARRAY_FLOAT);
 }
 
 ks_array_double* ks_array_double_from_data(uint64_t count, ...)
