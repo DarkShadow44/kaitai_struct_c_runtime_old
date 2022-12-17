@@ -29,16 +29,16 @@
     CHECK(expr, data)
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
-#define FIELD(expr, field)                                          \
+#define FIELD(expr, type, field)                                          \
     ({                                                              \
         __auto_type expr_ = (expr);                                 \
-        __auto_type ret = expr_->_internal->_get_##field(expr_);    \
+        __auto_type ret = ((type##_internal*)expr_->_handle.internal_read)->_get_##field(expr_);    \
         CHECKV(;);                                                  \
         ret;                                                        \
     })
 #else
-#define FIELD(expr, field) \
-    expr->_internal->_get_##field(expr)
+#define FIELD(expr, type, field) \
+    ((type##_internal*)expr->_handle.internal_read)->_get_##field(expr)
 #endif
 
 typedef char ks_bool;
@@ -100,6 +100,7 @@ typedef struct ks_stream
 typedef struct ks_handle
 {
     ks_stream* KS_DO_NOT_USE(stream);
+    void* internal_read;
     /* Might need to add parent/rootdata pointer as well... */
     int KS_DO_NOT_USE(pos);
     void* KS_DO_NOT_USE(data);
@@ -129,7 +130,6 @@ typedef struct ks_string
 typedef struct ks_usertype_generic
 {
     ks_handle _handle;
-    void* _internal;
     void* _parent;
 } ks_usertype_generic;
 
