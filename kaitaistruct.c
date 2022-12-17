@@ -345,7 +345,7 @@ static uint64_t stream_read_bits(ks_stream* stream, int n, ks_bool big_endian)
         /* derive reading result */
         value = stream->bits & mask;
         /* remove bottom bits that we've just read by shifting */
-        stream->bits >>= n;
+        stream->bits = n < 64 ? (stream->bits >> n) : 0;
         stream->bits_left -= n;
     }
     return value;
