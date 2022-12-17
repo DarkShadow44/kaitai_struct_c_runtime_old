@@ -287,68 +287,11 @@ int64_t ks_stream_read_s8be(ks_stream* stream)
     return temp;
 }
 
-static uint64_t get_mask_ones(int n) {
-    if (n == 64)
-        return 0xFFFFFFFFFFFFFFFF;
-    return ((uint64_t) 1 << n) - 1;
-}
 
 void ks_stream_align_to_byte(ks_stream* stream)
 {
     stream->bits = 0;
     stream->bits_left = 0;
-}
-
-static uint64_t stream_read_bits(ks_stream* stream, int n, ks_bool big_endian)
-{
-    int i;
-    uint64_t value;
-    uint64_t mask = get_mask_ones(n); /* raw mask with required number of 1s, starting from lowest bit */
-    int bits_needed = n - stream->bits_left;
-    if (bits_needed > 0)
-    {
-        uint8_t buf[8];
-        int bytes_needed = ((bits_needed - 1) / 8) + 1;
-        CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
-        CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
-        for (i = 0; i < bytes_needed; i++)
-        {
-            uint8_t b = buf[i];
-            if (big_endian)
-            {
-                stream->bits <<= 8;
-                stream->bits |= b;
-            }
-            else
-            {
-                stream->bits |= (((uint64_t)b) << stream->bits_left);
-            }
-            stream->bits_left += 8;
-        }
-    }
-
-    if (big_endian)
-    {
-        /* shift mask to align with highest bits available in @bits */
-        int shift_bits = stream->bits_left - n;
-        mask <<= shift_bits;
-
-        /* derive reading result */
-        value = (stream->bits & mask) >> shift_bits;
-        /* clear top bits that we've just read => AND with 1s */
-        stream->bits_left -= n;
-        mask = get_mask_ones(stream->bits_left);
-        stream->bits &= mask;
-    }
-    else
-    {
-        /* derive reading result */
-        value = stream->bits & mask;
-        /* remove bottom bits that we've just read by shifting */
-        stream->bits = n < 64 ? (stream->bits >> n) : 0;
-        stream->bits_left -= n;
-    }
-    return value;
 }
 
 float ks_stream_read_f4le(ks_stream* stream)
@@ -379,18 +322,77 @@ double ks_stream_read_f8be(ks_stream* stream)
     return temp;
 }
 
-uint64_t ks_stream_read_bits_le(ks_stream* stream, int width)
-{
-    uint64_t temp;
-    CHECK(temp = stream_read_bits(stream, width, 0), 0);
-    return temp;
-}
-
 uint64_t ks_stream_read_bits_be(ks_stream* stream, int width)
 {
-    uint64_t temp;
-    CHECK(temp = stream_read_bits(stream, width, 1), 0);
-    return temp;
+    int i;
+    uint64_t res = 0;
+    uint64_t mask;
+
+    int bits_needed = width - stream->bits_left;
+    stream->bits_left = -bits_needed & 7; /* -bits_needed mod 8 */
+
+    if (bits_needed > 0)
+    {
+        uint64_t new_bits;
+        uint8_t buf[8];
+        int bytes_needed = ((bits_needed - 1) / 8) + 1;
+        CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
+        CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
+        for (i = 0; i < bytes_needed; i++)
+        {
+            res = res << 8 | buf[i];
+        }
+
+        new_bits = res;
+        res = res >> stream->bits_left | (bits_needed < 64 ? stream->bits << bits_needed : 0); /* avoid undefined behavior of x << 64 */
+        stream->bits = new_bits; /* will be masked at the end of the function */
+    }
+    else
+    {
+        res = stream->bits >> -bits_needed; /* shift unneeded bits out */
+    }
+
+    mask = (((uint64_t)1) << stream->bits_left) - 1;
+    stream->bits &= mask;
+
+    return res;
+}
+
+uint64_t ks_stream_read_bits_le(ks_stream* stream, int width)
+{
+    int i;
+    uint64_t res = 0;
+    int bits_needed = width - stream->bits_left;
+
+    if (bits_needed > 0)
+    {
+        uint64_t new_bits;
+        uint8_t buf[8];
+        int bytes_needed = ((bits_needed - 1) / 8) + 1;
+        CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
+        CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
+        for (i = 0; i < bytes_needed; i++) {
+            res |= (uint64_t)(buf[i]) << (i * 8);
+        }
+
+        new_bits = bits_needed < 64 ? res >> bits_needed : 0; /* avoid undefined behavior of x >> 64 */
+        res = res << stream->bits_left | stream->bits;
+        stream->bits = new_bits;
+    }
+    else
+    {
+        res = stream->bits;
+        stream->bits >>= width;
+    }
+
+    stream->bits_left = -bits_needed & 7; /* `-bits_needed mod 8 */
+
+    if (width < 64)
+    {
+        uint64_t mask = (((uint64_t)1) << width) - 1;
+        res &= mask;
+    }
+    return res;
 }
 
 ks_bytes* ks_stream_read_bytes(ks_stream* stream, int len)
