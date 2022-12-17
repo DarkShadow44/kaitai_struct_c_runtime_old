@@ -59,6 +59,7 @@ ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config);
 ks_stream* ks_stream_create_from_memory(uint8_t* data, int len, ks_config* config);
 
 ks_bytes* ks_bytes_recreate(ks_bytes* original, void* data, uint64_t length);
+ks_bytes* ks_bytes_create(void* data, uint64_t length);
 
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
 int ks_bytes_get_data(const ks_bytes* bytes, void* data);
