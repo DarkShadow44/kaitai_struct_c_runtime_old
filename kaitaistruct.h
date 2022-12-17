@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define HANDLE(expr) \
+    ((ks_usertype_generic*)expr)->handle
+
 #define CHECK2(expr, message, DEFAULT) \
     if (expr) { \
         char buf[1024];     \
@@ -32,13 +35,13 @@
 #define FIELD(expr, type, field)                                          \
     ({                                                              \
         __auto_type expr_ = (expr);                                 \
-        __auto_type ret = ((type##_internal*)expr_->_handle.internal_read)->_get_##field((type*)expr_);    \
+        __auto_type ret = ((type##_internal*)HANDLE(expr_)->internal_read)->_get_##field((type*)expr_);    \
         CHECKV(;);                                                  \
         ret;                                                        \
     })
 #else
 #define FIELD(expr, type, field) \
-    ((type##_internal*)expr->_handle.internal_read)->_get_##field((type*)expr)
+    ((type##_internal*)HANDLE(expr)->internal_read)->_get_##field((type*)expr)
 #endif
 
 typedef char ks_bool;
@@ -112,9 +115,14 @@ typedef struct ks_handle
     ks_bool KS_DO_NOT_USE(temporary); /* To mark something allocated as temporary, e.g. strings */
 } ks_handle;
 
+typedef struct ks_usertype_generic
+{
+    ks_handle* handle;
+} ks_usertype_generic;
+
 typedef struct ks_bytes
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     ks_stream* KS_DO_NOT_USE(stream);
     uint64_t KS_DO_NOT_USE(pos);
     uint64_t KS_DO_NOT_USE(length);
@@ -123,117 +131,113 @@ typedef struct ks_bytes
 
 typedef struct ks_string
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t len;
     char* data;
 } ks_string;
 
-typedef struct ks_usertype_generic
-{
-    ks_handle _handle;
-} ks_usertype_generic;
 
 typedef struct ks_array_generic
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     void* data;
 } ks_array_generic;
 
 typedef struct ks_array_uint8_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     uint8_t* data;
 } ks_array_uint8_t;
 
 typedef struct ks_array_uint16_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     uint16_t* data;
 } ks_array_uint16_t;
 
 typedef struct ks_array_uint32_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     uint32_t* data;
 } ks_array_uint32_t;
 
 typedef struct ks_array_uint64_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     uint64_t* data;
 } ks_array_uint64_t;
 
 typedef struct ks_array_int8_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     int8_t* data;
 } ks_array_int8_t;
 
 typedef struct ks_array_int16_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     int16_t* data;
 } ks_array_int16_t;
 
 typedef struct ks_array_int32_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     int32_t* data;
 } ks_array_int32_t;
 
 typedef struct ks_array_int64_t
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     int64_t* data;
 } ks_array_int64_t;
 
 typedef struct ks_array_float
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     float* data;
 } ks_array_float;
 
 typedef struct ks_array_double
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     double* data;
 } ks_array_double;
 
 typedef struct ks_array_string
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     ks_string** data;
 } ks_array_string;
 
 typedef struct ks_array_bytes
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     ks_bytes** data;
 } ks_array_bytes;
 
 typedef struct ks_array_any
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     void** data;
 } ks_array_any;
 
 typedef struct ks_array_usertype_generic
 {
-    ks_handle _handle;
+    ks_usertype_generic kaitai_base;
     int64_t size;
     ks_usertype_generic** data;
 } ks_array_usertype_generic;
@@ -284,7 +288,7 @@ ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length);
 uint64_t ks_bytes_get_length(const ks_bytes* bytes);
 int ks_bytes_get_data(const ks_bytes* bytes, void* data);
 
-ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
+ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
 
 ks_string* ks_string_concat(ks_string* s1, ks_string* s2);
 void ks_string_destroy(ks_string* s);
@@ -297,14 +301,14 @@ ks_array_int64_t* ks_array_int64_t_from_data(uint64_t count, ...);
 ks_array_double* ks_array_double_from_data(uint64_t count, ...);
 ks_array_string* ks_array_string_from_data(uint64_t count, ...);
 ks_array_usertype_generic* ks_array_usertype_generic_from_data(uint64_t count, ...);
-int64_t ks_array_min_int(ks_handle* handle);
-int64_t ks_array_max_int(ks_handle* handle);
-double ks_array_min_float(ks_handle* handle);
-double ks_array_max_float(ks_handle* handle);
-ks_string* ks_array_min_string(ks_handle* handle);
-ks_string* ks_array_max_string(ks_handle* handle);
-ks_bytes* ks_array_min_bytes(ks_handle* handle);
-ks_bytes* ks_array_max_bytes(ks_handle* handle);
+int64_t ks_array_min_int(ks_usertype_generic* array);
+int64_t ks_array_max_int(ks_usertype_generic* array);
+double ks_array_min_float(ks_usertype_generic* array);
+double ks_array_max_float(ks_usertype_generic* array);
+ks_string* ks_array_min_string(ks_usertype_generic* array);
+ks_string* ks_array_max_string(ks_usertype_generic* array);
+ks_bytes* ks_array_min_bytes(ks_usertype_generic* array);
+ks_bytes* ks_array_max_bytes(ks_usertype_generic* array);
 ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad);
 ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include);
 int ks_string_compare(ks_string* left, ks_string* right);

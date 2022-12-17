@@ -414,7 +414,7 @@ ks_bytes* ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bo
     uint8_t byte;
     uint64_t start = stream->pos;
     uint64_t len;
-    ret->_handle = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     do
     {
         CHECK(stream_read_bytes(stream, 1, &byte), ret);
@@ -441,7 +441,7 @@ ks_bytes* ks_stream_read_bytes_full(ks_stream* stream)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    ret->_handle = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = stream->length - stream->pos;
     ret->stream = stream;
     ret->pos = stream->pos;
@@ -457,7 +457,7 @@ ks_bytes* ks_bytes_from_data(ks_stream* stream, uint64_t count, ...)
     va_list list;
     int i;
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = count;
     ret->data_direct = calloc(1, count);
     ret->stream = stream;
@@ -484,7 +484,7 @@ ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...)
         count++;
     }
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = count;
     ret->data_direct = calloc(1, count);
     ret->stream = stream;
@@ -502,7 +502,7 @@ ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...)
 ks_bytes* ks_bytes_create(ks_bytes* original, void* data, uint64_t length)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = length;
     ret->data_direct = data;
     ret->stream = original->stream;
@@ -553,7 +553,7 @@ ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad)
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint64_t len = bytes->length;
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->data_direct = malloc(len);
     ret->stream = bytes->stream;
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
@@ -575,7 +575,7 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
     uint64_t len = 0;
     uint64_t max_len = bytes->length;
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->data_direct = malloc(max_len);
     ret->stream = bytes->stream;
     if (ks_bytes_get_data(bytes, ret->data_direct) != 0)
@@ -594,21 +594,22 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
     return ret;
 }
 
-ks_handle ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size)
+ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size)
 {
-    ks_handle ret = {0};
+    ks_handle* ret = calloc(1, sizeof(ks_handle));
 
-    ret.stream = stream;
-    ret.pos = stream ? stream->pos : 0;
-    ret.data = data;
-    ret.type = type;
-    ret.type_size = type_size;
+    ret->stream = stream;
+    ret->pos = stream ? stream->pos : 0;
+    ret->data = data;
+    ret->type = type;
+    ret->type_size = type_size;
 
     return ret;
 }
 
-static int64_t array_get_int(ks_handle* handle, void* data)
+static int64_t array_get_int(ks_usertype_generic* array, void* data)
 {
+    ks_handle* handle = array->handle;
     switch(handle->type)
     {
         case KS_TYPE_ARRAY_UINT:
@@ -641,8 +642,9 @@ static int64_t array_get_int(ks_handle* handle, void* data)
     return 0;
 }
 
-static double array_get_float(ks_handle* handle, void* data)
+static double array_get_float(ks_usertype_generic* array, void* data)
 {
+   ks_handle* handle = array->handle;
    if (handle->type == KS_TYPE_ARRAY_FLOAT)
    {
        switch (handle->type_size)
@@ -656,17 +658,18 @@ static double array_get_float(ks_handle* handle, void* data)
     return 0;
 }
 
-static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, void* other)
+static ks_bool array_min_max_func(ks_usertype_generic* array, ks_bool max, void* minmax, void* other)
 {
+    ks_handle* handle = array->handle;
     if (max)
     {
         switch (handle->type)
         {
             case KS_TYPE_ARRAY_UINT:
             case KS_TYPE_ARRAY_INT:
-                return array_get_int(handle, other) > array_get_int(handle, minmax);
+                return array_get_int(array, other) > array_get_int(array, minmax);
             case KS_TYPE_ARRAY_FLOAT:
-                return array_get_float(handle, other) > array_get_float(handle, minmax);
+                return array_get_float(array, other) > array_get_float(array, minmax);
             case KS_TYPE_ARRAY_STRING:
                 return ks_string_compare(*(ks_string**)other, *(ks_string**)minmax) > 0;
             case KS_TYPE_ARRAY_BYTES:
@@ -681,9 +684,9 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
         {
             case KS_TYPE_ARRAY_UINT:
             case KS_TYPE_ARRAY_INT:
-                return array_get_int(handle, other) < array_get_int(handle, minmax);
+                return array_get_int(array, other) < array_get_int(array, minmax);
             case KS_TYPE_ARRAY_FLOAT:
-                return array_get_float(handle, other) < array_get_float(handle, minmax);
+                return array_get_float(array, other) < array_get_float(array, minmax);
             case KS_TYPE_ARRAY_STRING:
                 return ks_string_compare(*(ks_string**)other, *(ks_string**)minmax) < 0;
             case KS_TYPE_ARRAY_BYTES:
@@ -695,8 +698,9 @@ static ks_bool array_min_max_func(ks_handle* handle, ks_bool max, void* minmax, 
     return 0;
 }
 
-static void* array_min_max(ks_handle* handle, ks_bool max)
+static void* array_min_max(ks_usertype_generic* array_in, ks_bool max)
 {
+    ks_handle* handle = array_in->handle;
     char* pointer;
     ks_array_generic array;
     int i;
@@ -712,7 +716,7 @@ static void* array_min_max(ks_handle* handle, ks_bool max)
     for (i = 1; i < array.size; i++)
     {
         char* data_new = array.data + (i * handle->type_size);
-        if (array_min_max_func(handle, max, pointer, data_new))
+        if (array_min_max_func(array_in, max, pointer, data_new))
         {
             pointer = data_new;
         }
@@ -720,51 +724,51 @@ static void* array_min_max(ks_handle* handle, ks_bool max)
     return pointer;
 }
 
-int64_t ks_array_min_int(ks_handle* handle)
+int64_t ks_array_min_int(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 0);
-    return array_get_int(handle, ret);
+    void* ret = array_min_max(array, 0);
+    return array_get_int(array, ret);
 }
 
-int64_t ks_array_max_int(ks_handle* handle)
+int64_t ks_array_max_int(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 1);
-    return array_get_int(handle, ret);
+    void* ret = array_min_max(array, 1);
+    return array_get_int(array, ret);
 }
 
-double ks_array_min_float(ks_handle* handle)
+double ks_array_min_float(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 0);
-    return array_get_float(handle, ret);
+    void* ret = array_min_max(array, 0);
+    return array_get_float(array, ret);
 }
 
-double ks_array_max_float(ks_handle* handle)
+double ks_array_max_float(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 1);
-    return array_get_float(handle, ret);
+    void* ret = array_min_max(array, 1);
+    return array_get_float(array, ret);
 }
 
-ks_string* ks_array_min_string(ks_handle* handle)
+ks_string* ks_array_min_string(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 0);
+    void* ret = array_min_max(array, 0);
     return *(ks_string**)ret;
 }
 
-ks_string* ks_array_max_string(ks_handle* handle)
+ks_string* ks_array_max_string(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 1);
+    void* ret = array_min_max(array, 1);
     return *(ks_string**)ret;
 }
 
-ks_bytes* ks_array_min_bytes(ks_handle* handle)
+ks_bytes* ks_array_min_bytes(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 0);
+    void* ret = array_min_max(array, 0);
     return *(ks_bytes**)ret;
 }
 
-ks_bytes* ks_array_max_bytes(ks_handle* handle)
+ks_bytes* ks_array_max_bytes(ks_usertype_generic* array)
 {
-    void* ret = array_min_max(handle, 1);
+    void* ret = array_min_max(array, 1);
     return *(ks_bytes**)ret;
 }
 
@@ -822,8 +826,8 @@ int64_t ks_bytes_max(ks_bytes* bytes)
 ks_string* ks_string_concat(ks_string* s1, ks_string* s2)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret)->temporary = 1;
     ret->len = s1->len + s2->len;
     ret->data = calloc(1, ret->len + 1);
     memcpy(ret->data, s1->data, s1->len);
@@ -836,7 +840,7 @@ ks_string* ks_string_from_int(int64_t i, int base)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
     char buf[50] = {0};
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
     if (base == 10)
     {
         sprintf(buf, "%lld", (long long int)i);
@@ -846,7 +850,7 @@ ks_string* ks_string_from_int(int64_t i, int base)
         sprintf(buf, "%llx", (long long int)i);
     }
     
-    ret->_handle.temporary = 1;
+    HANDLE(ret)->temporary = 1;
     ret->len = strlen(buf);
     ret->data = calloc(1, ret->len + 1);
     memcpy(ret->data, buf, ret->len);
@@ -877,8 +881,8 @@ ks_string* ks_string_reverse(ks_string* str)
 {
     int i;
     ks_string* ret = calloc(1, sizeof(ks_string));
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret)->temporary = 1;
     ret->len = str->len;
     ret->data = calloc(1, ret->len + 1);
 
@@ -894,8 +898,8 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding)
     ks_string* tmp = calloc(1, sizeof(ks_string));
     ks_string* ret;
 
-    tmp->_handle = ks_handle_create(0, tmp, KS_TYPE_STRING, sizeof(ks_string));
-    tmp->_handle.temporary = 1;
+    HANDLE(tmp) = ks_handle_create(0, tmp, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(tmp)->temporary = 1;
     tmp->len = bytes->length;
     tmp->data = calloc(1, tmp->len + 1);
     if(ks_bytes_get_data(bytes, tmp->data) != 0)
@@ -915,8 +919,8 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding)
 ks_string* ks_string_from_cstr(const char* data)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret)->temporary = 1;
     ret->len = strlen(data);
     ret->data = calloc(1, ret->len + 1);
     memcpy(ret->data, data, ret->len);
@@ -927,8 +931,8 @@ ks_string* ks_string_from_cstr(const char* data)
 ks_string* ks_string_substr(ks_string* str, int start, int end)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret)->temporary = 1;
     ret->len = end - start;
     ret->data = calloc(1, ret->len + 1);
     memcpy(ret->data, str->data + start, ret->len);
@@ -939,10 +943,10 @@ ks_string* ks_string_substr(ks_string* str, int start, int end)
     type_array* ret = calloc(1, sizeof(type_array)); \
     va_list list; \
     int i; \
-    ret->_handle = ks_handle_create(0, ret, type_enum, sizeof(type_element)); \
-    ret->_handle.temporary = 1; \
+    HANDLE(ret)= ks_handle_create(0, ret, type_enum, sizeof(type_element)); \
+    HANDLE(ret)->temporary = 1; \
     ret->size = count; \
-    ret->data = calloc(ret->_handle.type_size, count); \
+    ret->data = calloc(HANDLE(ret)->type_size, count); \
     va_start(list, count); \
     for (i = 0; i < count; i++) {  \
         ret->data[i] = va_arg(list, type_element);  \
@@ -1052,8 +1056,8 @@ ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret)->temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
     ret->stream = bytes->stream;
@@ -1078,8 +1082,8 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes)
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint8_t* xor_data = malloc(xor_bytes->length);
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret)->temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
     ret->stream = bytes->stream;
@@ -1109,8 +1113,8 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    ret->_handle = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
-    ret->_handle.temporary = 1;
+    HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret)->temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
     ret->stream = bytes->stream;
@@ -1140,7 +1144,7 @@ void ks_bytes_set_error(ks_bytes* bytes, int err)
 
 void ks_string_set_error(ks_string* str, int err)
 {
-    int* error = str->_handle.stream->err;
+    int* error = HANDLE(str)->stream->err;
     if (*error == 0)
     {
         *error = err;
@@ -1149,9 +1153,9 @@ void ks_string_set_error(ks_string* str, int err)
 
 ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data)
 {
-    while (data->_handle.parent)
+    while (data->handle->parent)
     {
-        data = data->_handle.parent;
+        data = data->handle->parent;
     }
     return data;
 }
