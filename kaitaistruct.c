@@ -479,10 +479,12 @@ ks_bytes* ks_bytes_from_data_terminated(ks_stream* stream, ...)
     int i;
     int count = 0;
 
+    va_start(list, stream);
     while (va_arg(list, int) != 0xffff)
     {
         count++;
     }
+    va_end(list);
 
     HANDLE(ret) = ks_handle_create(0, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
     ret->length = count;
