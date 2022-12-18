@@ -35,6 +35,12 @@ typedef enum ks_error
     KS_ERROR_ZLIB,
     KS_ERROR_ZLIB_MISSING,
     KS_ERROR_ICONV,
+    KS_ERROR_END_OF_STREAM,
+    KS_ERROR_SEEK_FAILED,
+    KS_ERROR_READ_FAILED,
+    KS_ERROR_BIT_VAR_TOO_BIG,
+    KS_ERROR_VALIDATION_FAILED,
+    KS_ERROR_ENDIANESS_UNSPECIFIED,
 } ks_error;
 
 typedef struct ks_config ks_config;
@@ -208,10 +214,11 @@ typedef struct ks_array_usertype_generic
 
 ks_config* ks_config_create_internal(ks_log log, ks_ptr_inflate inflate, ks_ptr_str_decode str_decode);
 
-ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size);
+ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size, int internal_read_size, ks_usertype_generic* parent);
 
 void ks_string_destroy(ks_string* s);
 void ks_bytes_destroy(ks_bytes* bytes);
+void ks_handle_destroy(ks_handle* handle);
 
 ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes);
 ks_stream* ks_stream_get_root(ks_stream* stream);
@@ -356,16 +363,22 @@ struct ks_config
 #define HANDLE(expr) \
     ((ks_usertype_generic*)expr)->handle
 
-#define CHECK2(expr, message, DEFAULT) \
+#define KS_ASSERT(expr, message, errorcode, DEFAULT) \
     if (expr) { \
         char buf[1024];     \
-        stream->config->error = 1; \
+        stream->config->error = errorcode; \
         sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
         stream->config->log(buf);   \
         return DEFAULT; \
     }
 
-#define CHECK(expr, DEFAULT) \
+#define KS_ASSERT_VOID(expr, message, errorcode) \
+    KS_ASSERT(expr, message, errorcode, ;)
+
+#define KS_ASSERT_DATA(expr, message, errorcode) \
+    KS_ASSERT(expr, message, errorcode, data)
+
+#define KS_CHECK(expr, DEFAULT) \
     expr; \
     if (stream->config->error) { \
         char buf[1024]; \
@@ -374,15 +387,17 @@ struct ks_config
         return DEFAULT; \
     }
 
-#define CHECKV(expr) \
-    CHECK(expr, data)
+#define KS_CHECK_VOID(expr) \
+    KS_CHECK(expr, ;)
+
+#define KS_CHECK_DATA(expr) \
+    KS_CHECK(expr, data)
 
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ > 8) || __clang__
 #define FIELD(expr, type, field)                                          \
     ({                                                              \
         __auto_type expr_ = (expr);                                 \
         __auto_type ret = ((type##_internal*)HANDLE(expr_)->internal_read)->_get_##field((type*)expr_);    \
-        CHECKV(;);                                                  \
         ret;                                                        \
     })
 #else

@@ -38,6 +38,29 @@ void ks_config_destroy(ks_config* config)
     free(config);
 }
 
+ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size, int internal_read_size, ks_usertype_generic* parent)
+{
+    ks_handle* ret = calloc(1, sizeof(ks_handle));
+
+    ret->stream = stream;
+    ret->pos = stream ? stream->pos : 0;
+    ret->data = data;
+    ret->type = type;
+    ret->type_size = type_size;
+    if (internal_read_size != 0)
+    {
+        ret->internal_read = calloc(1, internal_read_size);
+    }
+    ret->parent = parent;
+
+    return ret;
+}
+
+void ks_handle_destroy(ks_handle* handle)
+{
+    free(handle);
+}
+
 ks_stream* ks_stream_create_from_file(FILE* file, ks_config* config)
 {
     ks_stream* ret;
@@ -120,19 +143,19 @@ uint64_t ks_stream_get_length(ks_stream* stream)
 
 void ks_stream_seek(ks_stream* stream, uint64_t pos)
 {
-    CHECK2(pos > stream->length, "End of stream", VOID);
+    KS_ASSERT(pos > stream->length, "End of stream", KS_ERROR_END_OF_STREAM, VOID);
     stream->pos = pos;
 }
 
 static void stream_read_bytes_nomove(const ks_stream* stream, uint64_t pos, uint64_t len, uint8_t* bytes)
 {
-    CHECK2(pos + len > stream->length, "End of stream", VOID);
+    KS_ASSERT(pos + len > stream->length, "End of stream", KS_ERROR_END_OF_STREAM, VOID);
     if (stream->is_file)
     {
         int success = fseek(stream->file, stream->start + pos, SEEK_SET);
         size_t read = fread(bytes, 1, len, stream->file);
-        CHECK2(success != 0, "Failed to seek", VOID);
-        CHECK2(len != read, "Failed to read", VOID);
+        KS_ASSERT(success != 0, "Failed to seek", KS_ERROR_SEEK_FAILED, VOID);
+        KS_ASSERT(len != read, "Failed to read", KS_ERROR_READ_FAILED, VOID);
     }
     else
     {
@@ -142,7 +165,7 @@ static void stream_read_bytes_nomove(const ks_stream* stream, uint64_t pos, uint
 
 static void stream_read_bytes(ks_stream* stream, uint64_t len, void* bytes)
 {
-    CHECK(stream_read_bytes_nomove(stream, stream->pos, len, bytes), VOID);
+    KS_CHECK(stream_read_bytes_nomove(stream, stream->pos, len, bytes), VOID);
     stream->pos += len;
 }
 
@@ -152,7 +175,7 @@ static int64_t stream_read_int(ks_stream* stream, int len, ks_bool big_endian)
     int64_t ret = 0;
     int i;
 
-    CHECK(stream_read_bytes(stream, len, bytes), 0);
+    KS_CHECK(stream_read_bytes(stream, len, bytes), 0);
 
     if (big_endian)
     {
@@ -177,7 +200,7 @@ static float stream_read_float(ks_stream* stream, ks_bool big_endian)
     float value;
     uint8_t bytes[sizeof(value)];
 
-    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes), 0);
+    KS_CHECK(stream_read_bytes(stream, sizeof(bytes), bytes), 0);
 
     if (big_endian != is_big_endian())
     {
@@ -193,7 +216,7 @@ static double stream_read_double(ks_stream* stream, ks_bool big_endian)
     double value;
     uint8_t bytes[sizeof(value)];
 
-    CHECK(stream_read_bytes(stream, sizeof(bytes), bytes), 0);
+    KS_CHECK(stream_read_bytes(stream, sizeof(bytes), bytes), 0);
 
     if (big_endian != is_big_endian())
     {
@@ -208,97 +231,97 @@ static double stream_read_double(ks_stream* stream, ks_bool big_endian)
 uint8_t ks_stream_read_u1(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 1, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 1, 0), 0);
     return temp;
 }
 
 uint16_t ks_stream_read_u2le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 2, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 2, 0), 0);
     return temp;
 }
 uint32_t ks_stream_read_u4le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 4, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 4, 0), 0);
     return temp;
 }
 
 uint64_t ks_stream_read_u8le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 8, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 8, 0), 0);
     return temp;
 }
 
 uint16_t ks_stream_read_u2be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 2, 1), 0);
+    KS_CHECK(temp = stream_read_int(stream, 2, 1), 0);
     return temp;
 }
 
 uint32_t ks_stream_read_u4be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 4, 1), 0);
+    KS_CHECK(temp = stream_read_int(stream, 4, 1), 0);
     return temp;
 }
 
 uint64_t ks_stream_read_u8be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 8, 1), 0);
+    KS_CHECK(temp = stream_read_int(stream, 8, 1), 0);
     return temp;
 }
 
 int8_t ks_stream_read_s1(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 1, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 1, 0), 0);
     return temp;
 }
 
 int16_t ks_stream_read_s2le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 2, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 2, 0), 0);
     return temp;
 }
 
 int32_t ks_stream_read_s4le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 4, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 4, 0), 0);
     return temp;
 }
 
 int64_t ks_stream_read_s8le(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 8, 0), 0);
+    KS_CHECK(temp = stream_read_int(stream, 8, 0), 0);
     return temp;
 }
 
 int16_t ks_stream_read_s2be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 2, 1), 0);
+    KS_CHECK(temp = stream_read_int(stream, 2, 1), 0);
     return temp;
 }
 
 int32_t ks_stream_read_s4be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 4, 1), 0);
+    KS_CHECK(temp = stream_read_int(stream, 4, 1), 0);
     return temp;
 }
 
 int64_t ks_stream_read_s8be(ks_stream* stream)
 {
     int64_t temp;
-    CHECK(temp = stream_read_int(stream, 8, 1), 0);
+    KS_CHECK(temp = stream_read_int(stream, 8, 1), 0);
     return temp;
 }
 
@@ -312,28 +335,28 @@ void ks_stream_align_to_byte(ks_stream* stream)
 float ks_stream_read_f4le(ks_stream* stream)
 {
     float temp;
-    CHECK(temp = stream_read_float(stream, 0), 0);
+    KS_CHECK(temp = stream_read_float(stream, 0), 0);
     return temp;
 }
 
 float ks_stream_read_f4be(ks_stream* stream)
 {
     float temp;
-    CHECK(temp = stream_read_float(stream, 1), 0);
+    KS_CHECK(temp = stream_read_float(stream, 1), 0);
     return temp;
 }
 
 double ks_stream_read_f8le(ks_stream* stream)
 {
     double temp;
-    CHECK(temp = stream_read_double(stream, 0), 0);
+    KS_CHECK(temp = stream_read_double(stream, 0), 0);
     return temp;
 }
 
 double ks_stream_read_f8be(ks_stream* stream)
 {
     double temp;
-    CHECK(temp = stream_read_double(stream, 1), 0);
+    KS_CHECK(temp = stream_read_double(stream, 1), 0);
     return temp;
 }
 
@@ -351,8 +374,8 @@ uint64_t ks_stream_read_bits_be(ks_stream* stream, int width)
         uint64_t new_bits;
         uint8_t buf[8];
         int bytes_needed = ((bits_needed - 1) / 8) + 1;
-        CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
-        CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
+        KS_ASSERT(bytes_needed > 8, "More than 8 bytes requested", KS_ERROR_BIT_VAR_TOO_BIG, 0);
+        KS_CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
         for (i = 0; i < bytes_needed; i++)
         {
             res = res << 8 | buf[i];
@@ -384,8 +407,8 @@ uint64_t ks_stream_read_bits_le(ks_stream* stream, int width)
         uint64_t new_bits;
         uint8_t buf[8];
         int bytes_needed = ((bits_needed - 1) / 8) + 1;
-        CHECK2(bytes_needed > 8, "More than 8 bytes requested", 0);
-        CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
+        KS_ASSERT(bytes_needed > 8, "More than 8 bytes requested", KS_ERROR_BIT_VAR_TOO_BIG, 0);
+        KS_CHECK(stream_read_bytes(stream, bytes_needed, buf), 0);
         for (i = 0; i < bytes_needed; i++) {
             res |= (uint64_t)(buf[i]) << (i * 8);
         }
@@ -414,9 +437,9 @@ ks_bytes* ks_stream_read_bytes(ks_stream* stream, int len)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    CHECK2(stream->pos + len > stream->length, "End of stream", ret);
+    KS_ASSERT(stream->pos + len > stream->length, "End of stream", KS_ERROR_END_OF_STREAM, ret);
 
-    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = len;
     ret->pos = stream->pos;
 
@@ -431,10 +454,10 @@ ks_bytes* ks_stream_read_bytes_term(ks_stream* stream, uint8_t terminator, ks_bo
     uint8_t byte;
     uint64_t start = stream->pos;
     uint64_t len;
-    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     do
     {
-        CHECK(stream_read_bytes(stream, 1, &byte), ret);
+        KS_CHECK(stream_read_bytes(stream, 1, &byte), ret);
     } while(byte != terminator);
 
     len = stream->pos - start;
@@ -457,7 +480,7 @@ ks_bytes* ks_stream_read_bytes_full(ks_stream* stream)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = stream->length - stream->pos;
     ret->pos = stream->pos;
 
@@ -472,7 +495,7 @@ ks_bytes* ks_bytes_from_data(ks_config* config, uint64_t count, ...)
     va_list list;
     int i;
 
-    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = count;
     ret->data_direct = calloc(1, count);
 
@@ -500,7 +523,7 @@ ks_bytes* ks_bytes_from_data_terminated(ks_config* config, ...)
     }
     va_end(list);
 
-    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = count;
     ret->data_direct = calloc(1, count);
 
@@ -517,7 +540,7 @@ ks_bytes* ks_bytes_from_data_terminated(ks_config* config, ...)
 ks_bytes* ks_bytes_recreate(ks_bytes* original, void* data, uint64_t length)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
-    HANDLE(ret) = ks_handle_create(HANDLE(original)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(HANDLE(original)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = length;
     ret->data_direct = data;
     return ret;
@@ -526,7 +549,7 @@ ks_bytes* ks_bytes_recreate(ks_bytes* original, void* data, uint64_t length)
 ks_bytes* ks_bytes_create(ks_config* config, void* data, uint64_t length)
 {
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
-    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = length;
     ret->data_direct = data;
     return ret;
@@ -566,7 +589,7 @@ int64_t ks_bytes_get_at(const ks_bytes* bytes, uint64_t index)
     else
     {
         uint8_t data;
-        CHECK(stream_read_bytes_nomove(stream, bytes->pos + index, 1, &data), 0);
+        KS_CHECK(stream_read_bytes_nomove(stream, bytes->pos + index, 1, &data), 0);
         return data;
     }
 }
@@ -576,7 +599,7 @@ ks_bytes* ks_bytes_strip_right(ks_bytes* bytes, int pad)
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint64_t len = bytes->length;
 
-    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->data_direct = malloc(len);
     if (ks_bytes_get_data(bytes, ret->data_direct) != KS_ERROR_OKAY)
     {
@@ -597,7 +620,7 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
     uint64_t len = 0;
     uint64_t max_len = bytes->length;
 
-    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->data_direct = malloc(max_len);
     if (ks_bytes_get_data(bytes, ret->data_direct) != KS_ERROR_OKAY)
     {
@@ -612,19 +635,6 @@ ks_bytes* ks_bytes_terminate(ks_bytes* bytes, int term, ks_bool include)
         len++;
 
     ret->length = len;
-    return ret;
-}
-
-ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size)
-{
-    ks_handle* ret = calloc(1, sizeof(ks_handle));
-
-    ret->stream = stream;
-    ret->pos = stream ? stream->pos : 0;
-    ret->data = data;
-    ret->type = type;
-    ret->type_size = type_size;
-
     return ret;
 }
 
@@ -847,7 +857,7 @@ int64_t ks_bytes_max(ks_bytes* bytes)
 ks_string* ks_string_concat(ks_string* s1, ks_string* s2)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    HANDLE(ret) = ks_handle_create(HANDLE(s1)->stream, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret) = ks_handle_create(HANDLE(s1)->stream, ret, KS_TYPE_STRING, sizeof(ks_string), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->len = s1->len + s2->len;
     ret->data = calloc(1, ret->len + 1);
@@ -861,7 +871,7 @@ ks_string* ks_string_from_int(ks_config* config, int64_t i, int base)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
     char buf[50] = {0};
-    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_STRING, sizeof(ks_string), 0, 0);
     if (base == 10)
     {
         sprintf(buf, "%lld", (long long int)i);
@@ -902,7 +912,7 @@ ks_string* ks_string_reverse(ks_string* str)
 {
     int i;
     ks_string* ret = calloc(1, sizeof(ks_string));
-    HANDLE(ret) = ks_handle_create(HANDLE(str)->stream, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret) = ks_handle_create(HANDLE(str)->stream, ret, KS_TYPE_STRING, sizeof(ks_string), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->len = str->len;
     ret->data = calloc(1, ret->len + 1);
@@ -919,7 +929,7 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding)
     ks_string* tmp = calloc(1, sizeof(ks_string));
     ks_string* ret;
 
-    HANDLE(tmp) = ks_handle_create(HANDLE(bytes)->stream, tmp, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(tmp) = ks_handle_create(HANDLE(bytes)->stream, tmp, KS_TYPE_STRING, sizeof(ks_string), 0, 0);
     HANDLE(tmp)->temporary = 1;
     tmp->len = bytes->length;
     tmp->data = calloc(1, tmp->len + 1);
@@ -940,7 +950,7 @@ ks_string* ks_string_from_bytes(ks_bytes* bytes, ks_string* encoding)
 ks_string* ks_string_from_cstr(ks_config* config, const char* data)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_STRING, sizeof(ks_string), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->len = strlen(data);
     ret->data = calloc(1, ret->len + 1);
@@ -952,7 +962,7 @@ ks_string* ks_string_from_cstr(ks_config* config, const char* data)
 ks_string* ks_string_substr(ks_string* str, int start, int end)
 {
     ks_string* ret = calloc(1, sizeof(ks_string));
-    HANDLE(ret) = ks_handle_create(HANDLE(str)->stream, ret, KS_TYPE_STRING, sizeof(ks_string));
+    HANDLE(ret) = ks_handle_create(HANDLE(str)->stream, ret, KS_TYPE_STRING, sizeof(ks_string), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->len = end - start;
     ret->data = calloc(1, ret->len + 1);
@@ -964,7 +974,7 @@ ks_string* ks_string_substr(ks_string* str, int start, int end)
     type_array* ret = calloc(1, sizeof(type_array)); \
     va_list list; \
     int i; \
-    HANDLE(ret)= ks_handle_create(config->fake_stream, ret, type_enum, sizeof(type_element)); \
+    HANDLE(ret)= ks_handle_create(config->fake_stream, ret, type_enum, sizeof(type_element), 0, 0); \
     HANDLE(ret)->temporary = 1; \
     ret->size = count; \
     ret->data = calloc(HANDLE(ret)->type_size, count); \
@@ -1117,7 +1127,7 @@ ks_bytes* ks_bytes_process_xor_int(ks_bytes* bytes, uint64_t xor_int, int count_
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
@@ -1142,7 +1152,7 @@ ks_bytes* ks_bytes_process_xor_bytes(ks_bytes* bytes, ks_bytes* xor_bytes)
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
     uint8_t* xor_data = malloc(xor_bytes->length);
 
-    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
@@ -1172,7 +1182,7 @@ ks_bytes* ks_bytes_process_rotate_left(ks_bytes* bytes, int count)
     uint64_t i;
     ks_bytes* ret = calloc(1, sizeof(ks_bytes));
 
-    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes));
+    HANDLE(ret) = ks_handle_create(HANDLE(bytes)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     HANDLE(ret)->temporary = 1;
     ret->length = bytes->length;
     ret->data_direct = calloc(1, bytes->length);
