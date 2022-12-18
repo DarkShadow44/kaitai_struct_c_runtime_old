@@ -356,9 +356,9 @@ struct ks_config
 
 #endif
 
-#ifdef KS_DEPEND_ON_INTERNALS
-
 /* Internal Macros */
+
+#ifdef KS_DEPEND_ON_INTERNALS
 
 #define HANDLE(expr) \
     ((ks_usertype_generic*)expr)->handle
