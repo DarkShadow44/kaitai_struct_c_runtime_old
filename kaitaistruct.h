@@ -84,8 +84,6 @@ void ks_string_set_error(ks_string* bytes, ks_error error);
 
 ks_config* ks_usertype_get_config(ks_usertype_generic* base);
 
-void ks_stream_destroy(ks_stream* stream);
-
 /* Typeinfo */
 
 typedef enum ks_type
@@ -216,10 +214,6 @@ ks_config* ks_config_create_internal(ks_log log, ks_ptr_inflate inflate, ks_ptr_
 
 ks_handle* ks_handle_create(ks_stream* stream, void* data, ks_type type, int type_size, int internal_read_size, ks_usertype_generic* parent);
 
-void ks_string_destroy(ks_string* s);
-void ks_bytes_destroy(ks_bytes* bytes);
-void ks_handle_destroy(ks_handle* handle);
-
 ks_stream* ks_stream_create_from_bytes(ks_bytes* bytes);
 ks_stream* ks_stream_get_root(ks_stream* stream);
 ks_usertype_generic* ks_usertype_get_root(ks_usertype_generic* data);
@@ -334,7 +328,6 @@ struct ks_handle
     int type_size;
     void* write_func; /* To write back */
     uint64_t last_size; /* To make sure the size when writing back isn't too big */
-    ks_bool temporary; /* To mark something allocated as temporary, e.g. strings */
 };
 
 struct ks_bytes
@@ -345,6 +338,15 @@ struct ks_bytes
     uint8_t* data_direct;
 };
 
+#define KS_MAX_MEMINFO 100
+struct ks_memory_info
+{
+    int count;
+    void* data[KS_MAX_MEMINFO];
+    struct ks_memory_info* next;
+};
+typedef struct ks_memory_info ks_memory_info;
+
 struct ks_config
 {
     ks_error error;
@@ -352,7 +354,17 @@ struct ks_config
     ks_ptr_inflate inflate;
     ks_ptr_str_decode str_decode;
     ks_log log;
+    struct ks_memory_info* meminfo_start;
+    struct ks_memory_info* meminfo_current;
 };
+
+#endif
+
+/* Internal Functions */
+
+#ifdef KS_DEPEND_ON_INTERNALS
+
+void* ks_alloc(ks_config* config, uint64_t len);
 
 #endif
 
