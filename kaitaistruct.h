@@ -41,6 +41,7 @@ typedef enum ks_error
     KS_ERROR_BIT_VAR_TOO_BIG,
     KS_ERROR_VALIDATION_FAILED,
     KS_ERROR_ENDIANESS_UNSPECIFIED,
+    KS_ERROR_REALLOC_FAILED,
 } ks_error;
 
 typedef struct ks_config ks_config;
@@ -356,6 +357,7 @@ struct ks_config
     ks_log log;
     struct ks_memory_info* meminfo_start;
     struct ks_memory_info* meminfo_current;
+    void **meminfo_last_realloc;
 };
 
 #endif
@@ -365,6 +367,7 @@ struct ks_config
 #ifdef KS_DEPEND_ON_INTERNALS
 
 void* ks_alloc(ks_config* config, uint64_t len);
+void* ks_realloc(ks_config* config, void* old, uint64_t len);
 
 #endif
 
@@ -375,13 +378,17 @@ void* ks_alloc(ks_config* config, uint64_t len);
 #define HANDLE(expr) \
     ((ks_usertype_generic*)expr)->handle
 
+#define KS_ERROR(config, message, errorcode) \
+    { \
+        char buf[1024];     \
+        config->error = errorcode; \
+        sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
+        config->log(buf);   \
+    }
+
 #define KS_ASSERT(expr, message, errorcode, DEFAULT) \
     if (expr) { \
-        char buf[1024];     \
-        stream->config->error = errorcode; \
-        sprintf(buf, "%s:%d - %s\n", __FILE__, __LINE__, message); \
-        stream->config->log(buf);   \
-        return DEFAULT; \
+        KS_ERROR(stream->config, message, errorcode); \
     }
 
 #define KS_ASSERT_VOID(expr, message, errorcode) \

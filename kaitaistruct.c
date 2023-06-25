@@ -20,9 +20,9 @@
 
 REVERSE_FUNC(uint8_t);
 
-void* ks_alloc(ks_config* config, uint64_t len)
+static void** ks_alloc_internal(ks_config* config, uint64_t len)
 {
-    void* ret;
+    void** ret;
     ks_memory_info* meminfo = config->meminfo_current;
     if (meminfo->count >= KS_MAX_MEMINFO)
     {
@@ -30,11 +30,53 @@ void* ks_alloc(ks_config* config, uint64_t len)
         meminfo = meminfo->next;
         config->meminfo_current = meminfo;
     }
-    ret = calloc(1, len);
-    meminfo->data[meminfo->count++] = ret;
+    ret = &meminfo->data[meminfo->count];
+    meminfo->data[meminfo->count++] = calloc(1, len);
     return ret;
 }
 
+void* ks_alloc(ks_config* config, uint64_t len)
+{
+    return *ks_alloc_internal(config, len);
+}
+
+void* ks_realloc(ks_config* config, void* old, uint64_t len)
+{
+    ks_memory_info* meminfo = config->meminfo_start;
+    if (!old)
+    {
+        config->meminfo_last_realloc = ks_alloc_internal(config, len);
+        return *config->meminfo_last_realloc;
+    }
+
+    if (config->meminfo_last_realloc && *config->meminfo_last_realloc == old)
+    {
+        *config->meminfo_last_realloc = realloc(old, len);
+        return *config->meminfo_last_realloc;
+    }
+
+    /* Fallback, search memory in whole list */
+    while (meminfo)
+    {
+        int i;
+        for (i = 0; i < meminfo->count; i++)
+        {
+           if (meminfo->data[i] == old)
+           {
+               void* ret = realloc(old, len);
+               meminfo->data[i] = ret;
+               config->meminfo_last_realloc = &meminfo->data[i];
+               return ret;
+           }
+        }
+        meminfo = meminfo->next;
+    }
+
+    /* Should never happen */
+
+    KS_ERROR(config, "Can't realloc data that was not allocated using ks_alloc/ks_realloc!", KS_ERROR_REALLOC_FAILED);
+    return 0;
+}
 
 ks_config* ks_config_create_internal(ks_log log, ks_ptr_inflate inflate, ks_ptr_str_decode str_decode)
 {
