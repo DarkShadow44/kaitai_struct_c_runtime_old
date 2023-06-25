@@ -608,7 +608,8 @@ ks_bytes* ks_bytes_recreate(ks_bytes* original, void* data, uint64_t length)
     ks_bytes* ret = ks_alloc(HANDLE(original)->stream->config, sizeof(ks_bytes));
     HANDLE(ret) = ks_handle_create(HANDLE(original)->stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = length;
-    ret->data_direct = data;
+    ret->data_direct = ks_alloc(HANDLE(original)->stream->config, length);
+    memcpy(ret->data_direct, data, length);
     return ret;
 }
 
@@ -617,7 +618,8 @@ ks_bytes* ks_bytes_create(ks_config* config, void* data, uint64_t length)
     ks_bytes* ret = ks_alloc(config, sizeof(ks_bytes));
     HANDLE(ret) = ks_handle_create(config->fake_stream, ret, KS_TYPE_BYTES, sizeof(ks_bytes), 0, 0);
     ret->length = length;
-    ret->data_direct = data;
+    ret->data_direct = ks_alloc(config, length);
+    memcpy(ret->data_direct, data, length);
     return ret;
 }
 

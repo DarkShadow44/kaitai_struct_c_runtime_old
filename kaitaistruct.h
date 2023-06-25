@@ -438,7 +438,8 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
     uint64_t length_out = 0;
     z_stream strm = {0};
     uint8_t outbuffer[1024*64];
-    int ret;
+    int ret_zlib;
+    ks_bytes* ret;
     ks_error err;
 
     data_in = (uint8_t*)malloc(length_in);
@@ -459,22 +460,25 @@ static ks_bytes* ks_inflate(ks_bytes* bytes)
         strm.next_out = outbuffer;
         strm.avail_out = sizeof(outbuffer);
 
-        ret = inflate(&strm, 0);
+        ret_zlib = inflate(&strm, 0);
 
         if (length_out < strm.total_out) {
             data_out = (uint8_t*)realloc(data_out, strm.total_out);
             memcpy(data_out + length_out, outbuffer, strm.total_out - length_out);
             length_out = strm.total_out;
         }
-    } while (ret == Z_OK);
+    } while (ret_zlib == Z_OK);
 
-    if (ret != Z_STREAM_END)
+    if (ret_zlib != Z_STREAM_END)
         goto error;
 
     if (inflateEnd(&strm) != Z_OK)
         goto error;
 
-    return ks_bytes_recreate(bytes, data_out, length_out);
+    ret = ks_bytes_recreate(bytes, data_out, length_out);
+    free(data_in);
+    free(data_out);
+    return ret;
 
  error:
     free(data_in);
